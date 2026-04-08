@@ -1,0 +1,39 @@
+{
+  "name": "wechat-morning-assistant",
+  "version": "1.0.0",
+  "description": "WeChat Morning Assistant — AI-powered CRM for real estate professionals",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --mac",
+    "build:dmg": "electron-builder --mac dmg"
+  },
+  "build": {
+    "appId": "com.wechat-assistant.app",
+    "productName": "WeChat Morning Assistant",
+    "mac": {
+      "category": "public.app-category.business",
+      "icon": "assets/icon.icns",
+      "target": ["dmg"]
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "onboarding.html",
+      "settings.html",
+      "assets/**/*",
+      "node_modules/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "../agent",
+        "to": "agent",
+        "filter": ["**/*", "!logs/**", "!crm/**", "!.env", "!__pycache__/**"]
+      }
+    ]
+  },
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.0"
+  }
+}

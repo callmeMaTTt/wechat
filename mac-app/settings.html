@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Settings — WeChat Morning Assistant</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+      background: #f5f5f7;
+      color: #1a1a2e;
+      padding: 36px 28px 20px;
+      -webkit-app-region: drag;
+    }
+    h1 {
+      font-size: 20px;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+    .form-group {
+      -webkit-app-region: no-drag;
+      background: white;
+      border-radius: 12px;
+      padding: 16px 18px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .form-group h3 {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #888;
+      margin-bottom: 12px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: #333;
+      margin-bottom: 4px;
+    }
+    input, select {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1.5px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-bottom: 12px;
+      outline: none;
+      font-family: inherit;
+    }
+    input:focus, select:focus { border-color: #667eea; }
+    button {
+      -webkit-app-region: no-drag;
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    button:hover { opacity: 0.9; }
+    .saved {
+      text-align: center;
+      color: #4ade80;
+      font-size: 13px;
+      margin-top: 10px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>Settings</h1>
+
+  <div class="form-group">
+    <h3>AI Engine</h3>
+    <label>Anthropic Secret Code</label>
+    <input type="password" id="apiKey" placeholder="sk-ant-...">
+  </div>
+
+  <div class="form-group">
+    <h3>Email Delivery</h3>
+    <label>Gmail Address</label>
+    <input type="email" id="emailFrom">
+    <label>Gmail App Password</label>
+    <input type="password" id="emailPassword">
+  </div>
+
+  <div class="form-group">
+    <h3>WeChat</h3>
+    <label>Your WeChat Name</label>
+    <input type="text" id="wechatName">
+    <label>Briefing Time</label>
+    <select id="briefingTime">
+      <option value="06:30">6:30 AM</option>
+      <option value="07:00">7:00 AM</option>
+      <option value="07:30">7:30 AM</option>
+      <option value="08:00">8:00 AM</option>
+      <option value="08:30">8:30 AM</option>
+      <option value="09:00">9:00 AM</option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <h3>Voice Transcription</h3>
+    <label>Whisper Model Size</label>
+    <select id="whisperModel">
+      <option value="base">Base (fast, less accurate)</option>
+      <option value="small">Small (balanced)</option>
+      <option value="medium">Medium (best for Chinese + English)</option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <h3>Cloud Dashboard (Optional)</h3>
+    <label>Vercel KV URL</label>
+    <input type="text" id="vercelKvUrl" placeholder="Leave blank if not using">
+    <label>Client ID</label>
+    <input type="text" id="clientId" placeholder="Leave blank if not using">
+  </div>
+
+  <button onclick="save()">Save Settings</button>
+  <p class="saved" id="savedMsg">Settings saved! Restart the app for changes to take effect.</p>
+
+  <script>
+    // Load current config
+    window.api.loadConfig().then((cfg) => {
+      document.getElementById("apiKey").value = cfg.ANTHROPIC_API_KEY || "";
+      document.getElementById("emailFrom").value = cfg.EMAIL_FROM || "";
+      document.getElementById("emailPassword").value = cfg.EMAIL_APP_PASSWORD || "";
+      document.getElementById("wechatName").value = cfg.MY_WECHAT_NAME || "";
+      document.getElementById("briefingTime").value = cfg.BRIEFING_TIME || "07:30";
+      document.getElementById("whisperModel").value = cfg.WHISPER_MODEL || "medium";
+      document.getElementById("vercelKvUrl").value = cfg.VERCEL_KV_URL || "";
+      document.getElementById("clientId").value = cfg.CLIENT_ID || "";
+    });
+
+    async function save() {
+      const config = {
+        apiKey: document.getElementById("apiKey").value.trim(),
+        emailFrom: document.getElementById("emailFrom").value.trim(),
+        emailTo: document.getElementById("emailFrom").value.trim(),
+        emailPassword: document.getElementById("emailPassword").value.trim(),
+        wechatName: document.getElementById("wechatName").value.trim(),
+        briefingTime: document.getElementById("briefingTime").value,
+        whisperModel: document.getElementById("whisperModel").value,
+        vercelKvUrl: document.getElementById("vercelKvUrl").value.trim(),
+        clientId: document.getElementById("clientId").value.trim(),
+      };
+      await window.api.saveConfig(config);
+      document.getElementById("savedMsg").style.display = "block";
+      setTimeout(() => {
+        document.getElementById("savedMsg").style.display = "none";
+      }, 3000);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+*.egg-info/
+
+# Environment
+.env
+agent/.env
+
+# Logs and data
+agent/logs/
+agent/crm/WeChat_CRM.xlsx
+dashboard/public/data.json
+
+# Node
+node_modules/
+mac-app/node_modules/
+mac-app/dist/
+dashboard/node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
