@@ -1,6 +1,6 @@
 anthropic>=0.39.0
 wechaty>=0.10.7
-wechaty-puppet-service>=1.0.0
+wechaty-puppet-service>=0.8.0
 schedule>=1.2.0
 openpyxl>=3.1.2
 faster-whisper>=1.0.0
