@@ -40,8 +40,8 @@ os.makedirs(LOGS_DIR, exist_ok=True)
 os.makedirs(CRM_DIR, exist_ok=True)
 
 # Claude system prompts
-SUMMARISER_PROMPT = """You are a WeChat assistant for a real estate professional.
-You will receive WeChat messages from the past 24 hours.
+SUMMARISER_PROMPT = """You are a messaging assistant for a real estate professional.
+You will receive WhatsApp messages from the past 24 hours.
 
 Your job:
 1. Summarise all conversations — group by contact, highlight urgent items
@@ -68,7 +68,7 @@ Respond in JSON with this structure:
 }"""
 
 CRM_EXTRACTION_PROMPT = """You are a CRM data extraction assistant for a real estate professional.
-Analyse the following WeChat messages and extract contact information.
+Analyse the following WhatsApp messages and extract contact information.
 
 For each person mentioned, extract whatever is available:
 - name

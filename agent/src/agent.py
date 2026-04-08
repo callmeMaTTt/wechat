@@ -70,7 +70,7 @@ class WeChatAgent:
         # 8. Send email
         print("[Agent] Sending briefing email...")
         today = datetime.now().strftime("%A, %d %B %Y")
-        subject = f"WeChat Morning Briefing — {today}"
+        subject = f"WhatsApp Morning Briefing — {today}"
         html = format_briefing_html(briefing)
         send_briefing_email(subject, html, attach_crm=True)
 
@@ -191,7 +191,7 @@ class WeChatAgent:
             "conversations": [],
             "crm_updates": []
         }
-        subject = f"WeChat Morning Briefing — {today}"
+        subject = f"WhatsApp Morning Briefing — {today}"
         html = format_briefing_html(briefing)
         send_briefing_email(subject, html, attach_crm=True)
         sync_to_cloud()

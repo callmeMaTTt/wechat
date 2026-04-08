@@ -82,7 +82,7 @@ def format_briefing_html(briefing: dict) -> str:
     <html>
     <body style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:600px;margin:0 auto;padding:20px;color:#333">
         <h1 style="color:#1a1a2e;border-bottom:2px solid #667eea;padding-bottom:8px">
-            WeChat Morning Briefing
+            WhatsApp Morning Briefing
         </h1>
         <p style="color:#666">{today}</p>
 

@@ -19,6 +19,9 @@ node_modules/
 mac-app/node_modules/
 mac-app/dist/
 dashboard/node_modules/
+listener/node_modules/
+listener/.wwebjs_auth/
+listener/.wwebjs_cache/
 
 # OS
 .DS_Store
