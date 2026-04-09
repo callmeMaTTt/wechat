@@ -1,7 +1,7 @@
 {
-  "name": "whatsapp-morning-assistant-server",
+  "name": "morningbrief",
   "version": "1.0.0",
-  "description": "Hosted WhatsApp Morning Assistant — clients install nothing",
+  "description": "Morning Brief (morningbrief.ai) — AI briefings for your messages",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",

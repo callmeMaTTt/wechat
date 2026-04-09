@@ -1,5 +1,5 @@
 /**
- * Morning Assistant — Hosted Server
+ * Morning Brief (morningbrief.ai) — Hosted Server
  *
  * Clients visit the website, scan a QR code, and get daily briefings.
  * No installation required on their end.
@@ -46,7 +46,7 @@ app.get("/login", (req, res) => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Log In — Morning Assistant</title>
+  <title>Log In — Morning Brief</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -496,7 +496,7 @@ cron.schedule("30 7 * * *", async () => {
 app.listen(PORT, () => {
   console.log("");
   console.log("=".repeat(50));
-  console.log("  Morning Assistant — Server");
+  console.log("  Morning Brief (morningbrief.ai)");
   console.log("=".repeat(50));
   console.log(`  URL: http://localhost:${PORT}`);
   console.log(`  Briefings: 7:30 AM daily`);

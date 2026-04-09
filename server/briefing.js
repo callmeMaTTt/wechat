@@ -223,7 +223,7 @@ async function sendEmail(config, briefing) {
     <html>
     <body style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:600px;margin:0 auto;padding:20px;color:#333">
       <h1 style="color:#1a1a2e;border-bottom:2px solid #667eea;padding-bottom:8px">
-        Morning Briefing
+        Morning Brief
       </h1>
       <p style="color:#666">${today}</p>
 
@@ -238,7 +238,8 @@ async function sendEmail(config, briefing) {
       ${convsHtml || '<p style="color:#999">No conversations in the last 24 hours.</p>'}
 
       <p style="color:#999;font-size:12px;margin-top:24px;border-top:1px solid #eee;padding-top:12px">
-        View your full CRM dashboard at: ${process.env.BASE_URL || "http://localhost:3000"}/dashboard/${config.clientId || ""}
+        View your dashboard at: ${process.env.BASE_URL || "https://morningbrief.ai"}/dashboard/${config.clientId || ""}
+        <br>Or log in at <a href="${process.env.BASE_URL || "https://morningbrief.ai"}/login">${process.env.BASE_URL || "morningbrief.ai"}/login</a>
       </p>
     </body>
     </html>`;
@@ -246,7 +247,7 @@ async function sendEmail(config, briefing) {
   await transporter.sendMail({
     from: process.env.EMAIL_FROM,
     to: config.email,
-    subject: `Morning Briefing — ${today}`,
+    subject: `Morning Brief — ${today}`,
     html,
   });
 }

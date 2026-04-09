@@ -1,6 +1,6 @@
 #!/bin/bash
 # ─────────────────────────────────────────────────
-#  WhatsApp Morning Assistant — Start Server
+#  Morning Brief (morningbrief.ai) — Start Server
 # ─────────────────────────────────────────────────
 
 cd "$(dirname "$0")/server"
@@ -17,7 +17,7 @@ fi
 
 echo ""
 echo "=========================================="
-echo "  Starting WhatsApp Morning Assistant..."
+echo "  Starting Morning Brief..."
 echo "=========================================="
 echo ""
 

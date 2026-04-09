@@ -1,13 +1,13 @@
 #!/bin/bash
 # ─────────────────────────────────────────────────
-#  WhatsApp Morning Assistant — Server Setup
+#  Morning Brief (morningbrief.ai) — Server Setup
 # ─────────────────────────────────────────────────
 
 set -e
 
 echo ""
 echo "=========================================="
-echo "  WhatsApp Morning Assistant — Setup"
+echo "  Morning Brief — Setup"
 echo "=========================================="
 echo ""
 
@@ -35,8 +35,8 @@ if [ ! -f .env ]; then
   read -p "Anthropic API key (from console.anthropic.com): " ANTHROPIC_KEY
   read -p "Gmail address (to send briefings from): " EMAIL_FROM
   read -p "Gmail App Password (see: support.google.com/accounts/answer/185833): " EMAIL_PASS
-  read -p "Server URL (press Enter for http://localhost:3000): " BASE_URL
-  BASE_URL=${BASE_URL:-http://localhost:3000}
+  read -p "Server URL (press Enter for https://morningbrief.ai): " BASE_URL
+  BASE_URL=${BASE_URL:-https://morningbrief.ai}
 
   cat > .env << EOF
 PORT=3000

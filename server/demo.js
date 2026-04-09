@@ -197,7 +197,7 @@ console.log("  Demo data created!");
 console.log("==========================================");
 console.log("");
 console.log(`  Client ID: ${clientId}`);
-console.log(`  Dashboard: http://localhost:3000/dashboard/${clientId}`);
+console.log(`  Dashboard: https://morningbrief.ai/dashboard/${clientId}`);
 console.log("");
 console.log("  8 contacts (2 hot, 3 warm, 2 cold, 1 client)");
 console.log("  9 messages from today");
