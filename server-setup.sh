@@ -35,6 +35,7 @@ if [ ! -f .env ]; then
   read -p "Anthropic API key (from console.anthropic.com): " ANTHROPIC_KEY
   read -p "Gmail address (to send briefings from): " EMAIL_FROM
   read -p "Gmail App Password (see: support.google.com/accounts/answer/185833): " EMAIL_PASS
+  read -p "OpenAI API key for voice transcription (optional, press Enter to skip): " OPENAI_KEY
   read -p "Server URL (press Enter for https://morningbrief.ai): " BASE_URL
   BASE_URL=${BASE_URL:-https://morningbrief.ai}
 
@@ -44,6 +45,7 @@ BASE_URL=$BASE_URL
 ANTHROPIC_API_KEY=$ANTHROPIC_KEY
 EMAIL_FROM=$EMAIL_FROM
 EMAIL_APP_PASSWORD=$EMAIL_PASS
+OPENAI_API_KEY=$OPENAI_KEY
 EOF
 
   echo ""

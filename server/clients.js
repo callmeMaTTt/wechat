@@ -8,6 +8,7 @@
 const { Client, LocalAuth } = require("whatsapp-web.js");
 const fs = require("fs");
 const path = require("path");
+const { transcribeVoiceMessage } = require("./transcriber");
 const QRCode = require("qrcode");
 
 const DATA_DIR = path.join(__dirname, "data");
@@ -144,7 +145,7 @@ function startClient(clientId) {
       if (msg.hasMedia) {
         if (msg.type === "ptt" || msg.type === "audio") {
           msgType = "voice";
-          content = "[Voice message]";
+          content = await transcribeVoiceMessage(msg, clientId);
         } else if (msg.type === "image") {
           msgType = "image";
           content = "[Image]";

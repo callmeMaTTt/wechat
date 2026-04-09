@@ -16,6 +16,8 @@
     "nodemailer": "^6.9.0",
     "@anthropic-ai/sdk": "^0.39.0",
     "imapflow": "^1.0.0",
-    "mailparser": "^3.7.0"
+    "mailparser": "^3.7.0",
+    "node-fetch": "^2.7.0",
+    "form-data": "^4.0.0"
   }
 }

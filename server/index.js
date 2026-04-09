@@ -18,6 +18,7 @@ const {
   getClientStatus,
   getAllClientIds,
   getClientDataPath,
+  getRecentMessages,
   onQR,
   removeQRListener,
 } = require("./clients");
@@ -408,6 +409,30 @@ app.get("/api/dashboard/:clientId", (req, res) => {
       ...counts,
       followups_due_today: followupsDueToday,
     },
+  });
+});
+
+// ─── Recent Messages API ───────────────────────────────────
+
+app.get("/api/messages/:clientId", (req, res) => {
+  const { clientId } = req.params;
+  const config = getClientConfig(clientId);
+  if (!config) return res.status(404).json({ error: "Client not found" });
+
+  const hours = parseInt(req.query.hours) || 24;
+  const messages = getRecentMessages(clientId, hours);
+
+  // Group by sender
+  const grouped = {};
+  for (const msg of messages) {
+    const sender = msg.sender || "Unknown";
+    if (!grouped[sender]) grouped[sender] = { sender, source: msg.source || "whatsapp", messages: [] };
+    grouped[sender].messages.push(msg);
+  }
+
+  res.json({
+    total: messages.length,
+    conversations: Object.values(grouped),
   });
 });
 

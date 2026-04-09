@@ -268,6 +268,9 @@
       <div class="nav-item active" onclick="showView('contacts')">
         <span class="nav-icon">&#128100;</span> Contacts
       </div>
+      <div class="nav-item" onclick="showView('messages')">
+        <span class="nav-icon">&#128172;</span> Messages
+      </div>
       <div class="nav-item" onclick="showView('followups')">
         <span class="nav-icon">&#128197;</span> Follow-ups
       </div>
@@ -333,13 +336,14 @@
     function showView(view) {
       currentView = view;
       document.querySelectorAll(".nav-item").forEach((el, i) => {
-        el.classList.toggle("active", ["contacts", "followups", "dashboard", "settings"][i] === view);
+        el.classList.toggle("active", ["contacts", "messages", "followups", "dashboard", "settings"][i] === view);
       });
       closeDetail();
 
       const main = document.getElementById("mainContent");
 
       if (view === "contacts") renderContacts(main);
+      else if (view === "messages") renderMessages(main);
       else if (view === "followups") renderFollowups(main);
       else if (view === "dashboard") renderDashboard(main);
       else if (view === "settings") renderSettings(main);
@@ -398,6 +402,88 @@
             </tbody>
           </table>
         </div>`;
+    }
+
+    async function renderMessages(main) {
+      main.innerHTML = `
+        <div class="page-header">
+          <h2>Recent Messages</h2>
+          <button onclick="triggerBriefing()" id="briefingBtn"
+            style="padding:10px 20px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">
+            Run Briefing Now
+          </button>
+        </div>
+        <div id="messagesLoading" style="text-align:center;padding:40px;color:#999">Loading messages...</div>`;
+
+      try {
+        const resp = await fetch(`/api/messages/${clientId}?hours=24`);
+        if (!resp.ok) throw new Error("Failed to load");
+        const data = await resp.json();
+
+        if (data.total === 0) {
+          document.getElementById("messagesLoading").innerHTML = `
+            <div style="text-align:center;padding:40px">
+              <div style="font-size:48px;margin-bottom:12px">&#128172;</div>
+              <p style="color:#999">No messages in the last 24 hours.</p>
+            </div>`;
+          return;
+        }
+
+        let html = '';
+        for (const conv of data.conversations) {
+          const sourceIcon = formatSource(conv.source);
+          const msgList = conv.messages.map(m => {
+            const time = m.timestamp ? m.timestamp.substring(11, 16) : "";
+            const isVoice = m.type === "voice";
+            const voiceTag = isVoice ? '<span style="background:#e0e7ff;color:#667eea;font-size:11px;padding:2px 6px;border-radius:4px;margin-left:6px">voice</span>' : '';
+            return `<div style="padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:13px;color:#444">
+              <span style="color:#999;font-size:12px;margin-right:8px">${esc(time)}</span>${esc(m.content)}${voiceTag}
+            </div>`;
+          }).join("");
+
+          html += `
+            <div class="table-card" style="padding:16px;margin-bottom:12px">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                <h3 style="font-size:15px;margin:0">${esc(conv.sender)}</h3>
+                <span style="font-size:12px">${sourceIcon} &middot; ${conv.messages.length} msg${conv.messages.length !== 1 ? 's' : ''}</span>
+              </div>
+              ${msgList}
+            </div>`;
+        }
+
+        document.getElementById("messagesLoading").innerHTML = html;
+      } catch {
+        document.getElementById("messagesLoading").innerHTML = '<p style="color:#ef4444;text-align:center;padding:40px">Failed to load messages.</p>';
+      }
+    }
+
+    async function triggerBriefing() {
+      const btn = document.getElementById("briefingBtn");
+      btn.textContent = "Running...";
+      btn.disabled = true;
+      btn.style.opacity = "0.6";
+
+      try {
+        const resp = await fetch(`/api/briefing/${clientId}`, { method: "POST" });
+        const data = await resp.json();
+        if (resp.ok) {
+          btn.textContent = "Briefing sent!";
+          btn.style.background = "#22c55e";
+        } else {
+          btn.textContent = "Failed — " + (data.error || "unknown error");
+          btn.style.background = "#ef4444";
+        }
+      } catch {
+        btn.textContent = "Connection error";
+        btn.style.background = "#ef4444";
+      }
+
+      setTimeout(() => {
+        btn.textContent = "Run Briefing Now";
+        btn.disabled = false;
+        btn.style.opacity = "1";
+        btn.style.background = "linear-gradient(135deg,#667eea,#764ba2)";
+      }, 3000);
     }
 
     function renderFollowups(main) {
