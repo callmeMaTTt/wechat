@@ -12,7 +12,7 @@ const fs = require("fs");
 const path = require("path");
 
 const SUMMARISER_PROMPT = `You are a messaging assistant for a real estate professional.
-You will receive WhatsApp messages from the past 24 hours.
+You will receive messages from the past 24 hours (from WhatsApp, Line, Email, etc.).
 
 Your job:
 1. Summarise all conversations — group by contact, highlight urgent items
@@ -94,7 +94,7 @@ async function runBriefing(clientId) {
       messages: [
         {
           role: "user",
-          content: `Here are the WhatsApp messages from the past 24 hours:\n\n${messageText}`,
+          content: `Here are the messages from the past 24 hours:\n\n${messageText}`,
         },
       ],
     });
@@ -220,7 +220,7 @@ async function sendEmail(config, briefing) {
     <html>
     <body style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:600px;margin:0 auto;padding:20px;color:#333">
       <h1 style="color:#1a1a2e;border-bottom:2px solid #667eea;padding-bottom:8px">
-        WhatsApp Morning Briefing
+        Morning Briefing
       </h1>
       <p style="color:#666">${today}</p>
 
@@ -243,7 +243,7 @@ async function sendEmail(config, briefing) {
   await transporter.sendMail({
     from: process.env.EMAIL_FROM,
     to: config.email,
-    subject: `WhatsApp Morning Briefing — ${today}`,
+    subject: `Morning Briefing — ${today}`,
     html,
   });
 }

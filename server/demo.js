@@ -36,6 +36,7 @@ const contacts = [
   {
     name: "Sarah Thompson",
     phone: "+1-555-0142",
+    source: "whatsapp",
     property_type: "3-bedroom house",
     budget: "$850,000 - $1,200,000",
     budget_min: 850000,
@@ -52,6 +53,7 @@ const contacts = [
   {
     name: "James Chen",
     phone: "+1-555-0198",
+    source: "line",
     property_type: "Investment apartment",
     budget: "$500,000 - $700,000",
     budget_min: 500000,
@@ -68,6 +70,7 @@ const contacts = [
   {
     name: "Emma Wilson",
     phone: "+1-555-0176",
+    source: "whatsapp",
     property_type: "Family home",
     budget: "$1,500,000 - $2,000,000",
     budget_min: 1500000,
@@ -84,6 +87,7 @@ const contacts = [
   {
     name: "David Park",
     phone: "+1-555-0134",
+    source: "email",
     property_type: "Townhouse",
     budget: "$900,000 - $1,100,000",
     budget_min: 900000,
@@ -100,6 +104,7 @@ const contacts = [
   {
     name: "Lisa Martinez",
     phone: "+1-555-0155",
+    source: "line",
     property_type: "Studio/1BR apartment",
     budget: "$350,000 - $450,000",
     budget_min: 350000,
@@ -116,6 +121,7 @@ const contacts = [
   {
     name: "Tom & Rachel Hughes",
     phone: "+1-555-0189",
+    source: "whatsapp",
     property_type: "4BR house with pool",
     budget: "$2,500,000+",
     budget_min: 2500000,
@@ -132,6 +138,7 @@ const contacts = [
   {
     name: "Kevin O'Brien",
     phone: "+1-555-0123",
+    source: "email",
     property_type: "Commercial office space",
     budget: "$800,000 - $1,200,000",
     budget_min: 800000,
@@ -148,6 +155,7 @@ const contacts = [
   {
     name: "Amy Nguyen",
     phone: "+1-555-0167",
+    source: "whatsapp",
     property_type: "2BR apartment",
     budget: "$600,000 - $750,000",
     budget_min: 600000,

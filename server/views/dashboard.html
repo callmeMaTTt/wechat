@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WhatsApp CRM Dashboard</title>
+  <title>Morning CRM Dashboard</title>
   <style>
     :root {
       --primary: #667eea;
@@ -264,7 +264,7 @@
 <body>
   <div class="app">
     <nav class="sidebar">
-      <h1>WeChat CRM</h1>
+      <h1>Morning CRM</h1>
       <div class="nav-item active" onclick="showView('contacts')">
         <span class="nav-icon">&#128100;</span> Contacts
       </div>
@@ -370,6 +370,7 @@
             <thead>
               <tr>
                 <th>Name</th>
+                <th>Source</th>
                 <th>Status</th>
                 <th>Property</th>
                 <th>Budget</th>
@@ -378,10 +379,11 @@
               </tr>
             </thead>
             <tbody>
-              ${filtered.length === 0 ? '<tr><td colspan="6" style="text-align:center;color:#999;padding:40px">No contacts found</td></tr>' : ""}
+              ${filtered.length === 0 ? '<tr><td colspan="7" style="text-align:center;color:#999;padding:40px">No contacts found</td></tr>' : ""}
               ${filtered.map((c, i) => `
                 <tr onclick="showContactDetail(${contacts.indexOf(c)})">
                   <td><strong>${esc(c.name || "Unknown")}</strong></td>
+                  <td>${formatSource(c.source)}</td>
                   <td><span class="badge ${(c.lead_status || 'cold').toLowerCase()}">${esc(c.lead_status || "cold")}</span></td>
                   <td>${esc(c.property_type || "—")}</td>
                   <td>${formatBudget(c.budget_min, c.budget_max)}</td>
@@ -501,7 +503,7 @@
         <div class="detail-section">
           <h3>Contact Info</h3>
           <div class="detail-row"><span class="label">Phone</span><span>${esc(c.phone || "—")}</span></div>
-          <div class="detail-row"><span class="label">WhatsApp</span><span>${esc(c.wechat_id || "—")}</span></div>
+          <div class="detail-row"><span class="label">Source</span><span>${formatSource(c.source)}</span></div>
           <div class="detail-row"><span class="label">Last Contact</span><span>${esc(c.last_contact || "—")}</span></div>
         </div>
 
@@ -542,6 +544,15 @@
     }
 
     // Helpers
+    function formatSource(source) {
+      const icons = {
+        whatsapp: '<span style="color:#25D366" title="WhatsApp">&#9742;</span> WhatsApp',
+        line: '<span style="color:#00B900" title="Line">&#9993;</span> Line',
+        email: '<span style="color:#667eea" title="Email">&#9993;</span> Email',
+      };
+      return icons[(source || "whatsapp").toLowerCase()] || esc(source || "WhatsApp");
+    }
+
     function esc(str) {
       if (!str) return "";
       const div = document.createElement("div");

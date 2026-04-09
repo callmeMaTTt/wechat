@@ -1,5 +1,5 @@
 /**
- * WhatsApp Morning Assistant — Hosted Server
+ * Morning Assistant — Hosted Server
  *
  * Clients visit the website, scan a QR code, and get daily briefings.
  * No installation required on their end.
@@ -309,7 +309,7 @@ cron.schedule("30 7 * * *", () => {
 app.listen(PORT, () => {
   console.log("");
   console.log("=".repeat(50));
-  console.log("  WhatsApp Morning Assistant — Server");
+  console.log("  Morning Assistant — Server");
   console.log("=".repeat(50));
   console.log(`  URL: http://localhost:${PORT}`);
   console.log(`  Briefings: 7:30 AM daily`);
