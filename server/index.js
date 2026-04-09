@@ -412,6 +412,70 @@ app.get("/api/dashboard/:clientId", (req, res) => {
   });
 });
 
+// ─── CRM Contacts API (add / edit / delete) ────────────────
+
+function loadContacts(clientId) {
+  const crmPath = path.join(getClientDataPath(clientId), "crm.json");
+  if (fs.existsSync(crmPath)) {
+    try { return JSON.parse(fs.readFileSync(crmPath, "utf-8")); } catch { return []; }
+  }
+  return [];
+}
+
+function saveContacts(clientId, contacts) {
+  const dir = getClientDataPath(clientId);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, "crm.json"), JSON.stringify(contacts, null, 2));
+}
+
+// Add a new contact
+app.post("/api/contacts/:clientId", (req, res) => {
+  const { clientId } = req.params;
+  if (!getClientConfig(clientId)) return res.status(404).json({ error: "Client not found" });
+
+  const contact = req.body;
+  if (!contact.name) return res.status(400).json({ error: "Name is required" });
+
+  contact.last_contact = contact.last_contact || new Date().toISOString().substring(0, 10);
+  contact.source = contact.source || "manual";
+
+  const contacts = loadContacts(clientId);
+  contacts.push(contact);
+  saveContacts(clientId, contacts);
+
+  res.json({ success: true, index: contacts.length - 1 });
+});
+
+// Update a contact
+app.put("/api/contacts/:clientId/:index", (req, res) => {
+  const { clientId, index } = req.params;
+  if (!getClientConfig(clientId)) return res.status(404).json({ error: "Client not found" });
+
+  const contacts = loadContacts(clientId);
+  const i = parseInt(index);
+  if (i < 0 || i >= contacts.length) return res.status(404).json({ error: "Contact not found" });
+
+  contacts[i] = { ...contacts[i], ...req.body };
+  saveContacts(clientId, contacts);
+
+  res.json({ success: true });
+});
+
+// Delete a contact
+app.delete("/api/contacts/:clientId/:index", (req, res) => {
+  const { clientId, index } = req.params;
+  if (!getClientConfig(clientId)) return res.status(404).json({ error: "Client not found" });
+
+  const contacts = loadContacts(clientId);
+  const i = parseInt(index);
+  if (i < 0 || i >= contacts.length) return res.status(404).json({ error: "Contact not found" });
+
+  contacts.splice(i, 1);
+  saveContacts(clientId, contacts);
+
+  res.json({ success: true });
+});
+
 // ─── Recent Messages API ───────────────────────────────────
 
 app.get("/api/messages/:clientId", (req, res) => {

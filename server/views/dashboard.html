@@ -362,7 +362,13 @@
       main.innerHTML = `
         <div class="page-header">
           <h2>Contacts (${filtered.length})</h2>
-          <span class="last-updated">Updated: ${formatDate(crmData?.updated_at)}</span>
+          <div>
+            <button onclick="openAddContact()"
+              style="padding:8px 16px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">
+              + Add Contact
+            </button>
+            <span class="last-updated" style="margin-left:12px">Updated: ${formatDate(crmData?.updated_at)}</span>
+          </div>
         </div>
         <div class="toolbar">
           <input class="search-box" placeholder="Search contacts..." value="${searchQuery}"
@@ -582,46 +588,157 @@
     function showContactDetail(index) {
       const c = crmData.contacts[index];
       if (!c) return;
+      openContactForm(c, index);
+    }
 
+    function openAddContact() {
+      openContactForm({}, -1);
+    }
+
+    function openContactForm(c, index) {
+      const isNew = index === -1;
       const panel = document.getElementById("detailPanel");
       const content = document.getElementById("detailContent");
 
+      const inp = (id, val, placeholder, type) =>
+        `<input id="cf_${id}" type="${type || 'text'}" value="${esc(val || '')}" placeholder="${placeholder}"
+          style="width:100%;padding:8px 10px;border:1.5px solid #e0e0e0;border-radius:6px;font-size:13px;font-family:inherit">`;
+
+      const sel = (id, val, options) => {
+        const opts = options.map(o =>
+          `<option value="${o}" ${(val || '').toLowerCase() === o ? 'selected' : ''}>${o.charAt(0).toUpperCase() + o.slice(1)}</option>`
+        ).join('');
+        return `<select id="cf_${id}" style="width:100%;padding:8px 10px;border:1.5px solid #e0e0e0;border-radius:6px;font-size:13px;font-family:inherit">${opts}</select>`;
+      };
+
+      const textarea = (id, val, placeholder, rows) =>
+        `<textarea id="cf_${id}" rows="${rows || 3}" placeholder="${placeholder}"
+          style="width:100%;padding:8px 10px;border:1.5px solid #e0e0e0;border-radius:6px;font-size:13px;font-family:inherit;resize:vertical">${esc(val || '')}</textarea>`;
+
+      const field = (label, html) =>
+        `<div style="margin-bottom:10px"><label style="display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#888;margin-bottom:3px">${label}</label>${html}</div>`;
+
       content.innerHTML = `
-        <div class="detail-name">${esc(c.name || "Unknown")}</div>
-        <span class="badge ${(c.lead_status || 'cold').toLowerCase()}">${esc(c.lead_status || "cold")}</span>
+        <div class="detail-name">${isNew ? 'New Contact' : esc(c.name || "Unknown")}</div>
+        <span id="cf_status" style="font-size:13px;color:#666"></span>
 
         <div class="detail-section">
           <h3>Contact Info</h3>
-          <div class="detail-row"><span class="label">Phone</span><span>${esc(c.phone || "—")}</span></div>
-          <div class="detail-row"><span class="label">Source</span><span>${formatSource(c.source)}</span></div>
-          <div class="detail-row"><span class="label">Last Contact</span><span>${esc(c.last_contact || "—")}</span></div>
+          ${field('Name *', inp('name', c.name, 'Full name'))}
+          ${field('Phone', inp('phone', c.phone, '+1-555-0123', 'tel'))}
+          ${field('Source', sel('source', c.source || 'whatsapp', ['whatsapp', 'email', 'line', 'manual', 'referral', 'website']))}
+          ${field('Lead Status', sel('lead_status', c.lead_status || 'cold', ['cold', 'warm', 'hot', 'client']))}
         </div>
 
         <div class="detail-section">
           <h3>Property Preferences</h3>
-          <div class="detail-row"><span class="label">Type</span><span>${esc(c.property_type || "—")}</span></div>
-          <div class="detail-row"><span class="label">Budget</span><span>${formatBudget(c.budget_min, c.budget_max)}</span></div>
-          <div class="detail-row"><span class="label">Location</span><span>${esc(c.preferred_locations || "—")}</span></div>
-          <div class="detail-row"><span class="label">Timeline</span><span>${esc(c.timeline || "—")}</span></div>
+          ${field('Property Type', inp('property_type', c.property_type, 'e.g. 3-bedroom house'))}
+          <div style="display:flex;gap:8px">
+            <div style="flex:1">${field('Budget Min', inp('budget_min', c.budget_min, '500000', 'number'))}</div>
+            <div style="flex:1">${field('Budget Max', inp('budget_max', c.budget_max, '1000000', 'number'))}</div>
+          </div>
+          ${field('Preferred Locations', inp('preferred_locations', c.preferred_locations, 'e.g. North Shore, Mosman'))}
+          ${field('Timeline', inp('timeline', c.timeline, 'e.g. Next 3 months'))}
         </div>
 
         <div class="detail-section">
           <h3>Follow-up</h3>
-          <div class="detail-row"><span class="label">Action</span><span>${esc(c.suggested_follow_up || "—")}</span></div>
-          <div class="detail-row"><span class="label">Due</span><span>${esc(c.follow_up_date || "—")}</span></div>
+          ${field('Suggested Action', inp('suggested_followup', c.suggested_followup || c.suggested_follow_up, 'What to do next'))}
+          ${field('Due Date', inp('follow_up_date', c.follow_up_date, '', 'date'))}
         </div>
 
         <div class="detail-section">
           <h3>Notes</h3>
-          <p style="font-size:13px;color:#555;white-space:pre-wrap;line-height:1.6">${esc(c.notes || "No notes yet.")}</p>
+          ${textarea('notes', c.notes, 'Key information about this contact...', 4)}
         </div>
 
-        <div class="detail-section">
-          <h3>Conversation History</h3>
-          <p style="font-size:13px;color:#555;white-space:pre-wrap;line-height:1.6">${esc(c.conversation_history || "No history recorded yet.")}</p>
+        <div style="display:flex;gap:8px;margin-top:16px">
+          <button onclick="saveContact(${index})"
+            style="flex:1;padding:12px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">
+            ${isNew ? 'Add Contact' : 'Save Changes'}
+          </button>
+          ${!isNew ? `<button onclick="deleteContact(${index})"
+            style="padding:12px 16px;background:white;color:#ef4444;border:1.5px solid #ef4444;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">
+            Delete
+          </button>` : ''}
         </div>`;
 
       panel.classList.add("open");
+    }
+
+    async function saveContact(index) {
+      const isNew = index === -1;
+      const statusEl = document.getElementById("cf_status");
+
+      const contact = {
+        name: document.getElementById("cf_name").value.trim(),
+        phone: document.getElementById("cf_phone").value.trim(),
+        source: document.getElementById("cf_source").value,
+        lead_status: document.getElementById("cf_lead_status").value,
+        property_type: document.getElementById("cf_property_type").value.trim(),
+        budget_min: document.getElementById("cf_budget_min").value ? Number(document.getElementById("cf_budget_min").value) : null,
+        budget_max: document.getElementById("cf_budget_max").value ? Number(document.getElementById("cf_budget_max").value) : null,
+        preferred_locations: document.getElementById("cf_preferred_locations").value.trim(),
+        timeline: document.getElementById("cf_timeline").value.trim(),
+        suggested_followup: document.getElementById("cf_suggested_followup").value.trim(),
+        follow_up_date: document.getElementById("cf_follow_up_date").value,
+        notes: document.getElementById("cf_notes").value.trim(),
+      };
+
+      if (!contact.name) {
+        statusEl.textContent = "Name is required";
+        statusEl.style.color = "#ef4444";
+        return;
+      }
+
+      statusEl.textContent = "Saving...";
+      statusEl.style.color = "#666";
+
+      try {
+        const url = isNew
+          ? `/api/contacts/${clientId}`
+          : `/api/contacts/${clientId}/${index}`;
+        const method = isNew ? "POST" : "PUT";
+
+        const resp = await fetch(url, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(contact),
+        });
+
+        if (resp.ok) {
+          statusEl.textContent = isNew ? "Contact added!" : "Saved!";
+          statusEl.style.color = "#22c55e";
+          // Reload data
+          const dataResp = await fetch(`/api/dashboard/${clientId}`);
+          if (dataResp.ok) crmData = await dataResp.json();
+          setTimeout(() => {
+            closeDetail();
+            renderContacts(document.getElementById("mainContent"));
+          }, 500);
+        } else {
+          const err = await resp.json();
+          statusEl.textContent = err.error || "Save failed";
+          statusEl.style.color = "#ef4444";
+        }
+      } catch {
+        statusEl.textContent = "Connection error";
+        statusEl.style.color = "#ef4444";
+      }
+    }
+
+    async function deleteContact(index) {
+      if (!confirm("Delete this contact? This cannot be undone.")) return;
+
+      try {
+        const resp = await fetch(`/api/contacts/${clientId}/${index}`, { method: "DELETE" });
+        if (resp.ok) {
+          const dataResp = await fetch(`/api/dashboard/${clientId}`);
+          if (dataResp.ok) crmData = await dataResp.json();
+          closeDetail();
+          renderContacts(document.getElementById("mainContent"));
+        }
+      } catch {}
     }
 
     function closeDetail() {
