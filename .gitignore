@@ -22,6 +22,11 @@ dashboard/node_modules/
 listener/node_modules/
 listener/.wwebjs_auth/
 listener/.wwebjs_cache/
+server/node_modules/
+server/data/
+server/.env
+server/.wwebjs_auth/
+server/.wwebjs_cache/
 
 # OS
 .DS_Store
