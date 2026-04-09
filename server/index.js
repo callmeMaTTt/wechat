@@ -38,6 +38,132 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "views", "index.html"));
 });
 
+// ─── Login (find your dashboard) ───────────────────────────
+
+app.get("/login", (req, res) => {
+  res.send(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Log In — Morning Assistant</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .card {
+      background: white;
+      border-radius: 20px;
+      padding: 44px 40px;
+      max-width: 420px;
+      width: 90%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    }
+    h1 { font-size: 24px; color: #1a1a2e; margin-bottom: 8px; }
+    p { color: #666; font-size: 14px; line-height: 1.6; margin-bottom: 20px; }
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #555;
+      margin-bottom: 5px;
+    }
+    input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1.5px solid #e0e0e0;
+      border-radius: 10px;
+      font-size: 15px;
+      margin-bottom: 16px;
+      outline: none;
+      font-family: inherit;
+    }
+    input:focus { border-color: #667eea; }
+    button {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    button:hover { opacity: 0.9; }
+    .error { color: #ef4444; font-size: 13px; margin-bottom: 12px; display: none; }
+    .signup-link { text-align: center; margin-top: 16px; font-size: 13px; color: #999; }
+    .signup-link a { color: #667eea; text-decoration: none; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Welcome back</h1>
+    <p>Enter the email you signed up with to access your dashboard.</p>
+    <p class="error" id="error">No account found with that email.</p>
+    <form onsubmit="return handleLogin(event)">
+      <label for="email">Your email</label>
+      <input type="email" id="email" placeholder="you@gmail.com" required>
+      <button type="submit">Go to Dashboard</button>
+    </form>
+    <p class="signup-link">Don't have an account? <a href="/">Sign up</a></p>
+  </div>
+  <script>
+    async function handleLogin(e) {
+      e.preventDefault();
+      const email = document.getElementById("email").value;
+      const errorEl = document.getElementById("error");
+      errorEl.style.display = "none";
+
+      try {
+        const res = await fetch("/api/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        });
+        const data = await res.json();
+        if (data.clientId) {
+          window.location.href = "/dashboard/" + data.clientId;
+        } else {
+          errorEl.textContent = data.error || "No account found with that email.";
+          errorEl.style.display = "block";
+        }
+      } catch {
+        errorEl.textContent = "Something went wrong. Please try again.";
+        errorEl.style.display = "block";
+      }
+      return false;
+    }
+  </script>
+</body>
+</html>`);
+});
+
+app.post("/api/login", (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: "Email required" });
+
+  // Find client by email
+  const clientIds = getAllClientIds();
+  for (const id of clientIds) {
+    const config = getClientConfig(id);
+    if (config && config.email && config.email.toLowerCase() === email.toLowerCase()) {
+      return res.json({ clientId: id });
+    }
+  }
+
+  res.status(404).json({ error: "No account found with that email. Have you signed up yet?" });
+});
+
 // ─── Sign Up ────────────────────────────────────────────────
 
 app.post("/signup", (req, res) => {
