@@ -22,6 +22,7 @@ const {
   removeQRListener,
 } = require("./clients");
 const { runBriefing, runAllBriefings } = require("./briefing");
+const { fetchEmails, fetchAllEmails } = require("./email-listener");
 const fs = require("fs");
 
 const app = express();
@@ -284,11 +285,64 @@ app.get("/api/dashboard/:clientId", (req, res) => {
   });
 });
 
+// ─── Email Settings API ────────────────────────────────────
+
+app.post("/api/email-settings/:clientId", (req, res) => {
+  const { clientId } = req.params;
+  const config = getClientConfig(clientId);
+
+  if (!config) {
+    return res.status(404).json({ error: "Client not found" });
+  }
+
+  const { host, port, user, password } = req.body;
+
+  if (!host || !user || !password) {
+    return res.status(400).json({ error: "Host, user, and password are required" });
+  }
+
+  // Save IMAP settings to client config
+  saveClientConfig(clientId, {
+    ...config,
+    imap: { host, port: port || 993, user, password },
+  });
+
+  // Fetch emails immediately
+  fetchEmails(clientId, 24).then(() => {
+    console.log(`[Email] ${clientId}: Initial email fetch complete`);
+  });
+
+  res.json({ success: true, message: "Email connected. Fetching messages..." });
+});
+
+app.get("/api/email-settings/:clientId", (req, res) => {
+  const { clientId } = req.params;
+  const config = getClientConfig(clientId);
+
+  if (!config) {
+    return res.status(404).json({ error: "Client not found" });
+  }
+
+  // Return settings without password
+  if (config.imap) {
+    res.json({
+      configured: true,
+      host: config.imap.host,
+      port: config.imap.port,
+      user: config.imap.user,
+    });
+  } else {
+    res.json({ configured: false });
+  }
+});
+
 // ─── Admin: trigger briefing manually ───────────────────────
 
 app.post("/api/briefing/:clientId", async (req, res) => {
   const { clientId } = req.params;
   try {
+    // Fetch latest emails before running briefing
+    await fetchEmails(clientId, 24);
     await runBriefing(clientId);
     res.json({ success: true });
   } catch (err) {
@@ -296,11 +350,18 @@ app.post("/api/briefing/:clientId", async (req, res) => {
   }
 });
 
-// ─── Scheduled Briefings ────────────────────────────────────
+// ─── Scheduled Tasks ───────────────────────────────────────
+
+// Fetch emails every 30 minutes
+cron.schedule("*/30 * * * *", () => {
+  console.log("[Cron] Fetching emails...");
+  fetchAllEmails(1); // Only last 1 hour to avoid duplicates
+});
 
 // Run every morning at 7:30 AM server time
-cron.schedule("30 7 * * *", () => {
+cron.schedule("30 7 * * *", async () => {
   console.log("[Cron] Running morning briefings...");
+  await fetchAllEmails(24); // Grab any missed emails
   runAllBriefings();
 });
 
@@ -313,9 +374,13 @@ app.listen(PORT, () => {
   console.log("=".repeat(50));
   console.log(`  URL: http://localhost:${PORT}`);
   console.log(`  Briefings: 7:30 AM daily`);
+  console.log(`  Email fetch: every 30 minutes`);
   console.log("=".repeat(50));
   console.log("");
 
   // Reconnect all existing clients
   startAllClients();
+
+  // Initial email fetch
+  fetchAllEmails(24);
 });

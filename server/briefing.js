@@ -40,6 +40,7 @@ Respond in JSON with this structure:
     {
       "name": "Name",
       "phone": "if mentioned",
+      "source": "whatsapp/line/email",
       "property_type": "house/apartment/etc",
       "budget": "if mentioned",
       "location": "preferred area",
@@ -74,8 +75,10 @@ async function runBriefing(clientId) {
   const grouped = {};
   for (const msg of messages) {
     const sender = msg.sender || "Unknown";
-    if (!grouped[sender]) grouped[sender] = [];
-    grouped[sender].push(`  [${msg.timestamp}] ${msg.content}`);
+    const source = msg.source || "whatsapp";
+    const key = `${sender} (via ${source})`;
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(`  [${msg.timestamp}] ${msg.content}`);
   }
 
   let messageText = "";

@@ -274,6 +274,9 @@
       <div class="nav-item" onclick="showView('dashboard')">
         <span class="nav-icon">&#128200;</span> Dashboard
       </div>
+      <div class="nav-item" onclick="showView('settings')">
+        <span class="nav-icon">&#9881;</span> Settings
+      </div>
     </nav>
 
     <main class="main" id="mainContent">
@@ -330,7 +333,7 @@
     function showView(view) {
       currentView = view;
       document.querySelectorAll(".nav-item").forEach((el, i) => {
-        el.classList.toggle("active", ["contacts", "followups", "dashboard"][i] === view);
+        el.classList.toggle("active", ["contacts", "followups", "dashboard", "settings"][i] === view);
       });
       closeDetail();
 
@@ -339,6 +342,7 @@
       if (view === "contacts") renderContacts(main);
       else if (view === "followups") renderFollowups(main);
       else if (view === "dashboard") renderDashboard(main);
+      else if (view === "settings") renderSettings(main);
     }
 
     function renderContacts(main) {
@@ -541,6 +545,131 @@
     function setFilter(status) {
       statusFilter = status;
       renderContacts(document.getElementById("mainContent"));
+    }
+
+    async function renderSettings(main) {
+      // Load current email settings
+      let emailSettings = { configured: false };
+      try {
+        const resp = await fetch(`/api/email-settings/${clientId}`);
+        if (resp.ok) emailSettings = await resp.json();
+      } catch {}
+
+      const statusBadge = emailSettings.configured
+        ? '<span style="color:#22c55e;font-weight:600">Connected</span>'
+        : '<span style="color:#999">Not connected</span>';
+
+      main.innerHTML = `
+        <div class="page-header">
+          <h2>Settings</h2>
+        </div>
+
+        <div class="table-card" style="padding:24px;max-width:560px">
+          <h3 style="font-size:16px;margin-bottom:4px">Email Inbox</h3>
+          <p style="font-size:13px;color:#666;margin-bottom:16px">
+            Connect your email to include incoming emails in your morning briefing. ${statusBadge}
+          </p>
+          ${emailSettings.configured ? '<p style="font-size:13px;color:#444;margin-bottom:16px">Currently connected: <strong>' + esc(emailSettings.user) + '</strong> (' + esc(emailSettings.host) + ')</p>' : ''}
+
+          <div style="margin-bottom:12px">
+            <label style="display:block;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#555;margin-bottom:4px">Email Provider</label>
+            <select id="emailProvider" onchange="fillImapDefaults()" style="width:100%;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px;font-family:inherit">
+              <option value="gmail">Gmail</option>
+              <option value="outlook">Outlook / Hotmail</option>
+              <option value="yahoo">Yahoo Mail</option>
+              <option value="custom">Custom IMAP</option>
+            </select>
+          </div>
+
+          <div id="imapHostRow" style="margin-bottom:12px;display:none">
+            <label style="display:block;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#555;margin-bottom:4px">IMAP Host</label>
+            <input id="imapHost" type="text" placeholder="imap.gmail.com" style="width:100%;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px;font-family:inherit">
+          </div>
+
+          <div style="margin-bottom:12px">
+            <label style="display:block;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#555;margin-bottom:4px">Email Address</label>
+            <input id="imapUser" type="email" placeholder="you@gmail.com" style="width:100%;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px;font-family:inherit">
+          </div>
+
+          <div style="margin-bottom:16px">
+            <label style="display:block;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#555;margin-bottom:4px">App Password</label>
+            <input id="imapPass" type="password" placeholder="xxxx-xxxx-xxxx-xxxx" style="width:100%;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px;font-family:inherit">
+            <p style="font-size:11px;color:#999;margin-top:4px">For Gmail: go to myaccount.google.com/apppasswords to generate one</p>
+          </div>
+
+          <button onclick="saveEmailSettings()" style="padding:12px 24px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">
+            ${emailSettings.configured ? 'Update Email' : 'Connect Email'}
+          </button>
+          <span id="emailStatus" style="margin-left:12px;font-size:13px"></span>
+        </div>
+
+        <div class="table-card" style="padding:24px;max-width:560px;margin-top:16px">
+          <h3 style="font-size:16px;margin-bottom:4px">WhatsApp</h3>
+          <p style="font-size:13px;color:#666;margin-bottom:8px">
+            Status: <span style="color:${crmData?.status === 'connected' ? '#22c55e' : '#ef4444'};font-weight:600">${esc(crmData?.status || 'unknown')}</span>
+          </p>
+        </div>
+      `;
+
+      fillImapDefaults();
+    }
+
+    function fillImapDefaults() {
+      const provider = document.getElementById("emailProvider").value;
+      const hostRow = document.getElementById("imapHostRow");
+      const hostInput = document.getElementById("imapHost");
+
+      const hosts = {
+        gmail: "imap.gmail.com",
+        outlook: "outlook.office365.com",
+        yahoo: "imap.mail.yahoo.com",
+      };
+
+      if (provider === "custom") {
+        hostRow.style.display = "block";
+        hostInput.value = "";
+      } else {
+        hostRow.style.display = "none";
+        hostInput.value = hosts[provider] || "";
+      }
+    }
+
+    async function saveEmailSettings() {
+      const provider = document.getElementById("emailProvider").value;
+      const host = provider === "custom"
+        ? document.getElementById("imapHost").value
+        : { gmail: "imap.gmail.com", outlook: "outlook.office365.com", yahoo: "imap.mail.yahoo.com" }[provider];
+      const user = document.getElementById("imapUser").value;
+      const password = document.getElementById("imapPass").value;
+      const statusEl = document.getElementById("emailStatus");
+
+      if (!user || !password) {
+        statusEl.textContent = "Please fill in all fields";
+        statusEl.style.color = "#ef4444";
+        return;
+      }
+
+      statusEl.textContent = "Connecting...";
+      statusEl.style.color = "#666";
+
+      try {
+        const resp = await fetch(`/api/email-settings/${clientId}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ host, port: 993, user, password }),
+        });
+        const data = await resp.json();
+        if (resp.ok) {
+          statusEl.textContent = "Connected! Emails will appear in your next briefing.";
+          statusEl.style.color = "#22c55e";
+        } else {
+          statusEl.textContent = data.error || "Failed to connect";
+          statusEl.style.color = "#ef4444";
+        }
+      } catch (err) {
+        statusEl.textContent = "Connection error";
+        statusEl.style.color = "#ef4444";
+      }
     }
 
     // Helpers

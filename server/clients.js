@@ -161,6 +161,7 @@ function startClient(clientId) {
         sender: senderName,
         content,
         type: msgType,
+        source: "whatsapp",
         room: groupName,
         timestamp: now.toISOString().replace("T", " ").substring(0, 19),
         timestamp_unix: now.getTime() / 1000,
