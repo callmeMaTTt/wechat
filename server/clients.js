@@ -199,20 +199,14 @@ function startClient(clientId) {
     console.log(`[${clientId}] Disconnected: ${reason}`);
     waClient._ready = false;
     clients.delete(clientId);
-    // Auto-reconnect after 10 seconds
-    setTimeout(() => {
-      console.log(`[${clientId}] Attempting reconnect...`);
-      startClient(clientId);
-    }, 10000);
   });
 
   clients.set(clientId, waClient);
-  try {
-    waClient.initialize();
-  } catch (err) {
-    console.error(`[${clientId}] Failed to initialize WhatsApp client:`, err.message);
+  waClient.initialize().catch((err) => {
+    console.error(`[${clientId}] WhatsApp failed to start:`, err.message);
+    console.error(`[${clientId}] Server will continue without WhatsApp. Install Chromium to enable it.`);
     clients.delete(clientId);
-  }
+  });
 }
 
 /**
