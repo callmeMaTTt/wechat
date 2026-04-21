@@ -110,14 +110,16 @@ function startClient(clientId) {
   ];
 
   // Use system Chromium if available (Railway/Linux servers)
+  const chromePath =
+    process.env.PUPPETEER_EXECUTABLE_PATH ||
+    process.env.CHROME_BIN ||
+    null;
+
   const puppeteerConfig = {
     headless: true,
     args: puppeteerArgs,
+    ...(chromePath && { executablePath: chromePath }),
   };
-
-  if (process.env.CHROME_BIN) {
-    puppeteerConfig.executablePath = process.env.CHROME_BIN;
-  }
 
   const waClient = new Client({
     authStrategy: new LocalAuth({

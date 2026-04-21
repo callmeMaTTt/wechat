@@ -1,5 +1,10 @@
 [phases.setup]
 nixPkgs = ["chromium", "nodejs_20"]
 
+[variables]
+CHROME_BIN = "/run/current-system/sw/bin/chromium"
+PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = "true"
+PUPPETEER_EXECUTABLE_PATH = "/run/current-system/sw/bin/chromium"
+
 [start]
 cmd = "node index.js"
