@@ -15,13 +15,35 @@ echo ""
 # ── 1. System packages ────────────────────────────────────────
 echo "[1/6] Installing system packages..."
 apt-get update -qq
+
+# Several libs were renamed with a t64 suffix in Ubuntu 24.04. Try the new
+# names first and fall back to the legacy names on older releases.
+install_pkg() {
+  for pkg in "$@"; do
+    if apt-get install -y -qq "$pkg" 2>/dev/null; then
+      return 0
+    fi
+  done
+  echo "  WARNING: could not install any of: $*"
+  return 1
+}
+
 apt-get install -y -qq \
   curl git nginx certbot python3-certbot-nginx \
-  chromium-browser \
   libgbm-dev libxkbcommon-dev libglib2.0-0 libnss3 \
-  libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
-  libxcomposite1 libxdamage1 libxrandr2 libxss1 \
-  libpango-1.0-0 libcairo2 libasound2
+  libdrm2 libxcomposite1 libxdamage1 libxrandr2 libxss1 \
+  libpango-1.0-0 libcairo2
+
+install_pkg libasound2t64 libasound2
+install_pkg libatk1.0-0t64 libatk1.0-0
+install_pkg libatk-bridge2.0-0t64 libatk-bridge2.0-0
+install_pkg libcups2t64 libcups2
+
+# Chromium: apt package on 22.04, snap-transitional on 24.04. Fall back to
+# installing via snap if neither apt package is available.
+apt-get install -y -qq chromium-browser 2>/dev/null || \
+  apt-get install -y -qq chromium 2>/dev/null || \
+  { apt-get install -y -qq snapd && snap install chromium; }
 
 # ── 2. Node.js 20 ─────────────────────────────────────────────
 echo "[2/6] Installing Node.js 20..."
@@ -71,8 +93,8 @@ ANTHROPIC_API_KEY=$ANTHROPIC_KEY
 EMAIL_FROM=$EMAIL_FROM
 EMAIL_APP_PASSWORD=$EMAIL_PASS
 OPENAI_API_KEY=$OPENAI_KEY
-CHROME_BIN=$(which chromium-browser || which chromium)
-PUPPETEER_EXECUTABLE_PATH=$(which chromium-browser || which chromium)
+CHROME_BIN=$(which chromium-browser || which chromium || ls /snap/bin/chromium 2>/dev/null)
+PUPPETEER_EXECUTABLE_PATH=$(which chromium-browser || which chromium || ls /snap/bin/chromium 2>/dev/null)
 PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 EOF
   echo ""
