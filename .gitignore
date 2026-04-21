@@ -1,32 +1,15 @@
-# Python
-__pycache__/
-*.pyc
-venv/
-.venv/
-*.egg-info/
-
 # Environment
 .env
-agent/.env
+server/.env
 
 # Logs and data
-agent/logs/
-agent/crm/WeChat_CRM.xlsx
-dashboard/public/data.json
+server/data/
+server/.wwebjs_auth/
+server/.wwebjs_cache/
 
 # Node
 node_modules/
-mac-app/node_modules/
-mac-app/dist/
-dashboard/node_modules/
-listener/node_modules/
-listener/.wwebjs_auth/
-listener/.wwebjs_cache/
 server/node_modules/
-server/data/
-server/.env
-server/.wwebjs_auth/
-server/.wwebjs_cache/
 
 # OS
 .DS_Store

@@ -61,7 +61,7 @@ if [ -d "/app" ]; then
   cd /app
   git pull origin claude/build-ai-agent-app-kQ5B6
 else
-  git clone https://github.com/callmeMaTTt/wechat.git /app
+  git clone https://github.com/callmeMaTTt/morning-brief.git /app
   cd /app
   git checkout claude/build-ai-agent-app-kQ5B6
 fi

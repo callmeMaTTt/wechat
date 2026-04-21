@@ -1,139 +1,85 @@
-# WeChat Morning Assistant
+# The Morning Brief
 
-AI-powered WeChat message summariser and CRM for real estate professionals.
+AI-powered daily briefings for busy professionals. The Morning Brief reads your WhatsApp and email every morning, summarises what matters, flags urgent items, and drafts replies — all delivered to your inbox before your first coffee.
 
 ## What it does
 
-Every morning, this agent:
-1. **Summarises** all WeChat messages from the past 24 hours
-2. **Drafts replies** for conversations that need a response
-3. **Extracts CRM data** — detects potential clients, property preferences, budgets
-4. **Updates a spreadsheet** — colour-coded lead tracking with follow-up reminders
-5. **Emails the briefing** with the CRM attached
-6. **Syncs to a web dashboard** accessible from any device
+Every day at a time you pick (in your local timezone), The Morning Brief:
+
+1. **Summarises** every WhatsApp conversation and inbound email from the last 24 hours
+2. **Flags urgent items** that need action today
+3. **Drafts replies** (casual + professional) for messages that need a response
+4. **Tracks contacts** in a lightweight CRM — lead status, budget, timeline, follow-ups
+
+Built for real estate agents, sales teams, and anyone who lives in their messages.
 
 ## Architecture
 
 ```
-agent/              Python backend (the brain)
-├── listener.py     Connects to WeChat, captures messages 24/7
-├── main.py         Scheduler — triggers briefing each morning
-├── config/         Settings and Claude prompts
-├── src/
-│   ├── agent.py    Orchestrator (Claude API calls)
-│   ├── crm.py      Excel CRM read/write
-│   ├── transcriber.py  Voice note transcription (local Whisper)
-│   ├── email_sender.py Morning briefing email
-│   └── cloud_sync.py   Sync CRM to Vercel KV
-├── logs/           Message cache + voice notes
-└── crm/            WeChat_CRM.xlsx
-
-mac-app/            Electron desktop app
-├── main.js         Menu bar app + process manager
-├── onboarding.html 5-step setup wizard
-├── settings.html   Settings window
-└── preload.js      IPC bridge
-
-dashboard/          Web dashboard (deploy to Vercel)
-├── public/
-│   └── index.html  Single-page app (contacts, follow-ups, pipeline)
-├── api/
-│   └── get_data.py Vercel serverless function
-└── vercel.json     Routing config
-
-scripts/
-└── provision_client.py  Generate client IDs + URLs
+morning-brief/
+└── server/            Node.js web app — the whole product
+    ├── index.js       Express server, routes, cron scheduler
+    ├── clients.js     WhatsApp client manager (whatsapp-web.js)
+    ├── briefing.js    Claude-powered summariser + email sender
+    ├── email-listener.js   IMAP poller for inbound emails
+    ├── transcriber.js Voice-note transcription (OpenAI Whisper)
+    ├── views/         Landing page + dashboard
+    ├── setup-digitalocean.sh   One-command server setup
+    └── package.json
 ```
 
-## Quick Start (Development)
+## Deploy in one command
 
-### 1. Python Agent
+Spin up a DigitalOcean droplet (Ubuntu 22.04 or 24.04, 2GB+ RAM), SSH in as root, and run:
 
 ```bash
-cd agent
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
-# Edit .env with your Anthropic API key, Gmail App Password, etc.
-
-# Test the briefing
-python3 main.py --now
-
-# Start the listener (needs WeChat QR scan)
-python3 listener.py
-
-# Start the scheduler
-python3 main.py
+curl -fsSL https://raw.githubusercontent.com/callmeMaTTt/morning-brief/main/server/setup-digitalocean.sh | bash
 ```
 
-### 2. Electron Mac App
+The script installs Node, Chromium, PM2, Nginx, optionally grabs a free Let's Encrypt SSL cert, and starts the app. It'll ask for:
+
+- Your Anthropic API key (for Claude summarisation)
+- A Gmail address + [App Password](https://myaccount.google.com/apppasswords) (to send briefings)
+- Optional: OpenAI API key for voice-note transcription
+- Optional: a domain name (otherwise it runs on the droplet's IP)
+
+## How users sign up
+
+1. Visit your deployed URL
+2. Enter name + email
+3. Scan the WhatsApp QR code on their phone
+4. Connect their email inbox (Gmail / Outlook / Yahoo / custom IMAP)
+5. Pick a briefing time and timezone in Settings
+6. Receive the first briefing the next morning
+
+## Key features
+
+- **Per-user scheduling** — each user picks their own briefing time and timezone
+- **Timezone-aware** — the 5-min scheduler fires each client's briefing at their local time
+- **Preview mode** — generate a briefing without emailing, to tune contacts before committing
+- **Onboarding checklist** — the dashboard walks new users through setup
+- **Multi-client** — one server hosts many users, each with their own dashboard
+
+## Local development
 
 ```bash
-cd mac-app
+cd server
 npm install
-npm start          # Dev mode
-npm run build      # Build .dmg
+cp .env.example .env    # fill in API keys
+npm start
 ```
 
-### 3. Web Dashboard
+Then visit http://localhost:3000.
+
+## Ops
 
 ```bash
-cd dashboard
-# Local preview
-npx serve public
-
-# Deploy to Vercel
-npx vercel --prod
+pm2 status                         # process state
+pm2 logs morningbrief --lines 50   # recent logs
+pm2 restart morningbrief           # restart after env changes
+cd /app && git pull && pm2 restart morningbrief   # pull updates
 ```
 
-Then add **Vercel KV** storage in the Vercel dashboard and set:
-- `KV_REST_API_URL` — auto-populated by Vercel KV
-- `KV_REST_API_TOKEN` — auto-populated by Vercel KV
+## License
 
-### 4. Provision a Client
-
-```bash
-python3 scripts/provision_client.py "Sarah Chen"
-```
-
-## Prerequisites
-
-- **Python 3.10+** with pip
-- **Node.js 18+** with npm (for Electron app)
-- **Anthropic API key** from [console.anthropic.com](https://console.anthropic.com)
-- **Gmail App Password** from [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)
-- **WeChat account** with web login enabled (test at [web.wechat.com](https://web.wechat.com))
-
-## Cost
-
-| Item | Monthly Cost |
-|------|-------------|
-| Anthropic API (daily briefings) | ~$1–3 |
-| Vercel hosting (free tier) | $0 |
-| Whisper (runs locally) | $0 |
-| **Total** | **~$1–3/month** |
-
-## Onboarding a Client
-
-1. Run `python3 scripts/provision_client.py "Their Name"`
-2. Send them the `.dmg` file
-3. Book a 20-minute Zoom call
-4. Walk them through the onboarding wizard (QR scan needs their phone)
-5. Bookmark their dashboard URL on their phone
-6. Done — they get daily briefings automatically
-
-## WeChat Web Login Note
-
-The listener uses [wechaty](https://wechaty.js.org/) which connects through WeChat's web interface. If web login is blocked for their account (test at web.wechat.com), the alternatives are:
-- **Manual export**: Export chat history as .txt from WeChat desktop
-- **WeChat Work (企业微信)**: Has an official API, always works
-- **WeChatPYAPI** (Windows only): Hooks into desktop app directly
-
-## Voice Notes
-
-After a WeChat call, send a voice note to yourself describing what was discussed. The agent transcribes it using local Whisper and adds it to the CRM.
-
-Example: *"Called David Lim — he confirmed budget is 2.2 million, wants to view the Clendon Road property this Saturday."*
-
-The contact name is extracted automatically from how you start the note.
+MIT
