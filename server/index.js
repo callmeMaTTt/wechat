@@ -1,5 +1,5 @@
 /**
- * Morning Brief (morningbrief.ai) — Hosted Server
+ * The Morning Brief — Hosted Server
  *
  * Clients visit the website, scan a QR code, and get daily briefings.
  * No installation required on their end.
@@ -285,7 +285,7 @@ app.get("/connect/:clientId", (req, res) => {
     <div id="successState" style="display:none">
       <div class="success-icon">&#10003;</div>
       <p class="success">Connected!</p>
-      <p>You're all set, ${config.name}. Your next briefing arrives at 7:30 AM — you can change the time and timezone in Settings.</p>
+      <p>You're all set, ${config.name}. Pick your preferred briefing time and timezone in Settings — the default is 07:30.</p>
       <p>Your personal dashboard:</p>
       <a class="btn" href="/dashboard/${clientId}">Open Dashboard</a>
     </div>
@@ -727,10 +727,10 @@ cron.schedule("*/5 * * * *", async () => {
 app.listen(PORT, () => {
   console.log("");
   console.log("=".repeat(50));
-  console.log("  Morning Brief (morningbrief.ai)");
+  console.log("  The Morning Brief");
   console.log("=".repeat(50));
   console.log(`  URL: http://localhost:${PORT}`);
-  console.log(`  Briefings: 7:30 AM daily`);
+  console.log(`  Briefings: per-user schedule (see client settings)`);
   console.log(`  Email fetch: every 30 minutes`);
   console.log("=".repeat(50));
   console.log("");

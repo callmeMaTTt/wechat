@@ -78,7 +78,7 @@ if [ ! -f /app/server/.env ]; then
   read -p "Gmail address (sends briefings): " EMAIL_FROM
   read -s -p "Gmail App Password: " EMAIL_PASS; echo ""
   read -p "OpenAI API key for voice transcription (press Enter to skip): " OPENAI_KEY
-  read -p "Your domain (e.g. morningbrief.ai) or press Enter to use IP: " DOMAIN
+  read -p "Your domain (e.g. trymorningbrief.com) or press Enter to use IP: " DOMAIN
 
   if [ -z "$DOMAIN" ]; then
     BASE_URL="http://$(curl -s ifconfig.me)"

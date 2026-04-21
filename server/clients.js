@@ -115,7 +115,7 @@ function startClient(clientId) {
     "--single-process",
   ];
 
-  // Use system Chromium if available (Railway/Linux servers)
+  // Use system Chromium if available (Linux servers)
   const chromePath =
     process.env.PUPPETEER_EXECUTABLE_PATH ||
     process.env.CHROME_BIN ||

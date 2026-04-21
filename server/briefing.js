@@ -12,7 +12,7 @@ const fs = require("fs");
 const path = require("path");
 
 const SUMMARISER_PROMPT = `You are a messaging assistant for a real estate professional.
-You will receive messages from the past 24 hours (from WhatsApp, Line, Email, etc.).
+You will receive messages from the past 24 hours (from WhatsApp and Email).
 
 Your job:
 1. Summarise all conversations — group by contact, highlight urgent items
@@ -40,7 +40,7 @@ Respond in JSON with this structure:
     {
       "name": "Name",
       "phone": "if mentioned",
-      "source": "whatsapp/line/email",
+      "source": "whatsapp/email",
       "property_type": "house/apartment/etc",
       "budget": "if mentioned",
       "location": "preferred area",
@@ -247,8 +247,8 @@ async function sendEmail(config, briefing) {
       ${convsHtml || '<p style="color:#999">No conversations in the last 24 hours.</p>'}
 
       <p style="color:#999;font-size:12px;margin-top:24px;border-top:1px solid #eee;padding-top:12px">
-        View your dashboard at: ${process.env.BASE_URL || "https://morningbrief.ai"}/dashboard/${config.clientId || ""}
-        <br>Or log in at <a href="${process.env.BASE_URL || "https://morningbrief.ai"}/login">${process.env.BASE_URL || "morningbrief.ai"}/login</a>
+        View your dashboard at: ${process.env.BASE_URL || "https://trymorningbrief.com"}/dashboard/${config.clientId || ""}
+        <br>Or log in at <a href="${process.env.BASE_URL || "https://trymorningbrief.com"}/login">${process.env.BASE_URL || "trymorningbrief.com"}/login</a>
       </p>
     </body>
     </html>`;

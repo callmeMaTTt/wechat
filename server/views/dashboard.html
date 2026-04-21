@@ -715,7 +715,7 @@
           <h3>Contact Info</h3>
           ${field('Name *', inp('name', c.name, 'Full name'))}
           ${field('Phone', inp('phone', c.phone, '+1-555-0123', 'tel'))}
-          ${field('Source', sel('source', c.source || 'whatsapp', ['whatsapp', 'email', 'line', 'manual', 'referral', 'website']))}
+          ${field('Source', sel('source', c.source || 'whatsapp', ['whatsapp', 'email', 'manual', 'referral', 'website']))}
           ${field('Lead Status', sel('lead_status', c.lead_status || 'cold', ['cold', 'warm', 'hot', 'client']))}
         </div>
 
@@ -1050,7 +1050,6 @@
     function formatSource(source) {
       const icons = {
         whatsapp: '<span style="color:#25D366" title="WhatsApp">&#9742;</span> WhatsApp',
-        line: '<span style="color:#00B900" title="Line">&#9993;</span> Line',
         email: '<span style="color:#667eea" title="Email">&#9993;</span> Email',
       };
       return icons[(source || "whatsapp").toLowerCase()] || esc(source || "WhatsApp");

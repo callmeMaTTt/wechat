@@ -53,7 +53,7 @@ const contacts = [
   {
     name: "James Chen",
     phone: "+1-555-0198",
-    source: "line",
+    source: "whatsapp",
     property_type: "Investment apartment",
     budget: "$500,000 - $700,000",
     budget_min: 500000,
@@ -104,7 +104,7 @@ const contacts = [
   {
     name: "Lisa Martinez",
     phone: "+1-555-0155",
-    source: "line",
+    source: "whatsapp",
     property_type: "Studio/1BR apartment",
     budget: "$350,000 - $450,000",
     budget_min: 350000,
@@ -197,7 +197,7 @@ console.log("  Demo data created!");
 console.log("==========================================");
 console.log("");
 console.log(`  Client ID: ${clientId}`);
-console.log(`  Dashboard: https://morningbrief.ai/dashboard/${clientId}`);
+console.log(`  Dashboard: ${process.env.BASE_URL || "http://localhost:3000"}/dashboard/${clientId}`);
 console.log("");
 console.log("  8 contacts (2 hot, 3 warm, 2 cold, 1 client)");
 console.log("  9 messages from today");

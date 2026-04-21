@@ -1,7 +1,7 @@
 {
   "name": "morningbrief",
   "version": "1.0.0",
-  "description": "Morning Brief (morningbrief.ai) — AI briefings for your messages",
+  "description": "The Morning Brief — AI briefings for WhatsApp and email",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
