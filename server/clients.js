@@ -98,15 +98,33 @@ function startClient(clientId) {
 
   console.log(`[${clientId}] Starting WhatsApp client...`);
 
+  const puppeteerArgs = [
+    "--no-sandbox",
+    "--disable-setuid-sandbox",
+    "--disable-gpu",
+    "--disable-dev-shm-usage",
+    "--disable-accelerated-2d-canvas",
+    "--no-first-run",
+    "--no-zygote",
+    "--single-process",
+  ];
+
+  // Use system Chromium if available (Railway/Linux servers)
+  const puppeteerConfig = {
+    headless: true,
+    args: puppeteerArgs,
+  };
+
+  if (process.env.CHROME_BIN) {
+    puppeteerConfig.executablePath = process.env.CHROME_BIN;
+  }
+
   const waClient = new Client({
     authStrategy: new LocalAuth({
       clientId: clientId,
       dataPath: path.join(DATA_DIR, ".wwebjs_auth"),
     }),
-    puppeteer: {
-      headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-gpu"],
-    },
+    puppeteer: puppeteerConfig,
   });
 
   waClient._ready = false;
@@ -189,7 +207,12 @@ function startClient(clientId) {
   });
 
   clients.set(clientId, waClient);
-  waClient.initialize();
+  try {
+    waClient.initialize();
+  } catch (err) {
+    console.error(`[${clientId}] Failed to initialize WhatsApp client:`, err.message);
+    clients.delete(clientId);
+  }
 }
 
 /**
