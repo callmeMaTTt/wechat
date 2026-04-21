@@ -51,27 +51,25 @@ Respond in JSON with this structure:
   ]
 }`;
 
-async function runBriefing(clientId) {
+async function generateBriefing(clientId) {
   const config = getClientConfig(clientId);
   if (!config) {
     console.log(`[Briefing] No config for ${clientId}`);
-    return;
+    return null;
   }
 
   const messages = getRecentMessages(clientId, 24);
   console.log(`[Briefing] ${clientId}: ${messages.length} messages in last 24h`);
 
   if (messages.length === 0) {
-    await sendEmail(config, {
+    return {
       overview: "No new messages in the last 24 hours.",
       urgent_items: [],
       conversations: [],
       contacts: [],
-    });
-    return;
+    };
   }
 
-  // Format messages for Claude
   const grouped = {};
   for (const msg of messages) {
     const sender = msg.sender || "Unknown";
@@ -86,52 +84,63 @@ async function runBriefing(clientId) {
     messageText += `\n--- ${sender} ---\n${msgs.join("\n")}\n`;
   }
 
-  // Call Claude
+  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+  const response = await anthropic.messages.create({
+    model: "claude-sonnet-4-20250514",
+    max_tokens: 2000,
+    system: SUMMARISER_PROMPT,
+    messages: [
+      {
+        role: "user",
+        content: `Here are the messages from the past 24 hours:\n\n${messageText}`,
+      },
+    ],
+  });
+
+  const text = response.content[0].text;
+  let briefing;
+
   try {
-    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
-    const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 2000,
-      system: SUMMARISER_PROMPT,
-      messages: [
-        {
-          role: "user",
-          content: `Here are the messages from the past 24 hours:\n\n${messageText}`,
-        },
-      ],
-    });
-
-    const text = response.content[0].text;
-    let briefing;
-
-    try {
-      briefing = JSON.parse(text);
-    } catch {
-      // Try extracting JSON from markdown code block
-      const match = text.match(/```(?:json)?\s*\n([\s\S]*?)\n```/);
-      if (match) {
-        briefing = JSON.parse(match[1]);
+    briefing = JSON.parse(text);
+  } catch {
+    const match = text.match(/```(?:json)?\s*\n([\s\S]*?)\n```/);
+    if (match) {
+      briefing = JSON.parse(match[1]);
+    } else {
+      const start = text.indexOf("{");
+      const end = text.lastIndexOf("}");
+      if (start !== -1 && end !== -1) {
+        briefing = JSON.parse(text.substring(start, end + 1));
       } else {
-        const start = text.indexOf("{");
-        const end = text.lastIndexOf("}");
-        if (start !== -1 && end !== -1) {
-          briefing = JSON.parse(text.substring(start, end + 1));
-        } else {
-          briefing = { overview: text, urgent_items: [], conversations: [], contacts: [] };
-        }
+        briefing = { overview: text, urgent_items: [], conversations: [], contacts: [] };
       }
     }
+  }
 
-    // Save contacts to CRM data
-    saveCRMData(clientId, briefing.contacts || []);
+  return briefing;
+}
 
-    // Send email
-    await sendEmail(config, briefing);
+async function runBriefing(clientId, options = {}) {
+  const { preview = false } = options;
+  const config = getClientConfig(clientId);
+  if (!config) return null;
 
-    console.log(`[Briefing] ${clientId}: Briefing sent to ${config.email}`);
+  try {
+    const briefing = await generateBriefing(clientId);
+    if (!briefing) return null;
+
+    if (!preview) {
+      saveCRMData(clientId, briefing.contacts || []);
+      await sendEmail(config, briefing);
+      console.log(`[Briefing] ${clientId}: Briefing sent to ${config.email}`);
+    }
+
+    return briefing;
   } catch (err) {
     console.error(`[Briefing] ${clientId}: Error:`, err.message);
+    if (preview) throw err;
+    return null;
   }
 }
 
@@ -268,4 +277,4 @@ async function runAllBriefings() {
   }
 }
 
-module.exports = { runBriefing, runAllBriefings };
+module.exports = { runBriefing, runAllBriefings, generateBriefing };

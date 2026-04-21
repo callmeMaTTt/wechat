@@ -23,7 +23,7 @@ const {
   onQR,
   removeQRListener,
 } = require("./clients");
-const { runBriefing, runAllBriefings } = require("./briefing");
+const { runBriefing } = require("./briefing");
 const { fetchEmails, fetchAllEmails } = require("./email-listener");
 const fs = require("fs");
 
@@ -285,7 +285,7 @@ app.get("/connect/:clientId", (req, res) => {
     <div id="successState" style="display:none">
       <div class="success-icon">&#10003;</div>
       <p class="success">Connected!</p>
-      <p>You're all set, ${config.name}. You'll receive your first morning briefing tomorrow at 7:30 AM.</p>
+      <p>You're all set, ${config.name}. Your next briefing arrives at 7:30 AM — you can change the time and timezone in Settings.</p>
       <p>Your personal dashboard:</p>
       <a class="btn" href="/dashboard/${clientId}">Open Dashboard</a>
     </div>
@@ -422,12 +422,20 @@ app.get("/api/dashboard/:clientId", (req, res) => {
   const today = new Date().toISOString().substring(0, 10);
   const followupsDueToday = followups.filter((f) => f.due_date === today).length;
 
+  const onboarding = {
+    whatsapp: getClientStatus(clientId) === "connected",
+    contacts: contacts.length > 0,
+    email: Boolean(config.imap),
+    tested: Boolean(config.testBriefingSent),
+  };
+
   res.json({
     name: config.name,
     status: getClientStatus(clientId),
     updated_at: new Date().toISOString(),
     contacts,
     followups,
+    onboarding,
     stats: {
       total: contacts.length,
       ...counts,
@@ -579,14 +587,68 @@ app.get("/api/email-settings/:clientId", (req, res) => {
 
 app.post("/api/briefing/:clientId", async (req, res) => {
   const { clientId } = req.params;
+  const config = getClientConfig(clientId);
+  if (!config) return res.status(404).json({ error: "Client not found" });
+
   try {
-    // Fetch latest emails before running briefing
     await fetchEmails(clientId, 24);
     await runBriefing(clientId);
+    saveClientConfig(clientId, { ...config, testBriefingSent: true });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// Preview the briefing without emailing it
+app.post("/api/briefing/:clientId/preview", async (req, res) => {
+  const { clientId } = req.params;
+  if (!getClientConfig(clientId)) return res.status(404).json({ error: "Client not found" });
+
+  try {
+    await fetchEmails(clientId, 24);
+    const briefing = await runBriefing(clientId, { preview: true });
+    res.json({ success: true, briefing });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Briefing preferences (schedule + timezone) ────────────
+
+app.get("/api/preferences/:clientId", (req, res) => {
+  const { clientId } = req.params;
+  const config = getClientConfig(clientId);
+  if (!config) return res.status(404).json({ error: "Client not found" });
+  res.json({
+    briefingTime: config.briefingTime || "07:30",
+    timezone: config.timezone || "UTC",
+  });
+});
+
+app.post("/api/preferences/:clientId", (req, res) => {
+  const { clientId } = req.params;
+  const config = getClientConfig(clientId);
+  if (!config) return res.status(404).json({ error: "Client not found" });
+
+  const { briefingTime, timezone } = req.body;
+  if (briefingTime && !/^(\d{1,2}):(\d{2})$/.test(briefingTime)) {
+    return res.status(400).json({ error: "Invalid time format (use HH:MM)" });
+  }
+  if (timezone) {
+    try {
+      new Intl.DateTimeFormat("en-CA", { timeZone: timezone });
+    } catch {
+      return res.status(400).json({ error: "Unknown timezone" });
+    }
+  }
+
+  saveClientConfig(clientId, {
+    ...config,
+    ...(briefingTime && { briefingTime }),
+    ...(timezone && { timezone }),
+  });
+  res.json({ success: true });
 });
 
 // ─── Scheduled Tasks ───────────────────────────────────────
@@ -597,11 +659,67 @@ cron.schedule("*/30 * * * *", () => {
   fetchAllEmails(1); // Only last 1 hour to avoid duplicates
 });
 
-// Run every morning at 7:30 AM server time
-cron.schedule("30 7 * * *", async () => {
-  console.log("[Cron] Running morning briefings...");
-  await fetchAllEmails(24); // Grab any missed emails
-  runAllBriefings();
+// Run every 5 minutes and fire briefings for clients whose local time matches
+// their configured briefingTime (default 07:30, default tz UTC).
+function getLocalHM(timezone) {
+  try {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: timezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).formatToParts(new Date());
+    const o = {};
+    for (const p of parts) o[p.type] = p.value;
+    return {
+      date: `${o.year}-${o.month}-${o.day}`,
+      minutes: parseInt(o.hour, 10) * 60 + parseInt(o.minute, 10),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function parseHM(hm) {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(hm || "");
+  if (!m) return null;
+  const h = parseInt(m[1], 10);
+  const min = parseInt(m[2], 10);
+  if (h < 0 || h > 23 || min < 0 || min > 59) return null;
+  return h * 60 + min;
+}
+
+cron.schedule("*/5 * * * *", async () => {
+  const ids = getAllClientIds();
+  for (const clientId of ids) {
+    const config = getClientConfig(clientId);
+    if (!config) continue;
+
+    const tz = config.timezone || "UTC";
+    const target = parseHM(config.briefingTime || "07:30");
+    if (target == null) continue;
+
+    const local = getLocalHM(tz);
+    if (!local) continue;
+
+    // Fire if we're within this 5-minute window and we haven't already sent today.
+    const diff = local.minutes - target;
+    if (diff < 0 || diff >= 5) continue;
+    if (config.lastBriefingDate === local.date) continue;
+
+    console.log(`[Cron] Firing briefing for ${clientId} (${local.date} ${tz})`);
+    saveClientConfig(clientId, { ...config, lastBriefingDate: local.date });
+
+    try {
+      await fetchEmails(clientId, 24);
+      await runBriefing(clientId);
+    } catch (err) {
+      console.error(`[Cron] ${clientId} briefing failed:`, err.message);
+    }
+  }
 });
 
 // ─── Start Server ───────────────────────────────────────────

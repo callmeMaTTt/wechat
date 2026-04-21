@@ -414,11 +414,18 @@
       main.innerHTML = `
         <div class="page-header">
           <h2>Recent Messages</h2>
-          <button onclick="triggerBriefing()" id="briefingBtn"
-            style="padding:10px 20px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">
-            Run Briefing Now
-          </button>
+          <div style="display:flex;gap:8px">
+            <button onclick="previewBriefing()" id="previewBtn"
+              style="padding:10px 20px;background:white;color:#667eea;border:1.5px solid #667eea;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">
+              Preview briefing
+            </button>
+            <button onclick="triggerBriefing()" id="briefingBtn"
+              style="padding:10px 20px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">
+              Send briefing now
+            </button>
+          </div>
         </div>
+        <div id="previewOutput"></div>
         <div id="messagesLoading" style="text-align:center;padding:40px;color:#999">Loading messages...</div>`;
 
       try {
@@ -475,6 +482,11 @@
         if (resp.ok) {
           btn.textContent = "Briefing sent!";
           btn.style.background = "#22c55e";
+          // Refresh dashboard data so the onboarding checklist updates
+          try {
+            const d = await fetch(`/api/dashboard/${clientId}`);
+            if (d.ok) crmData = await d.json();
+          } catch {}
         } else {
           btn.textContent = "Failed — " + (data.error || "unknown error");
           btn.style.background = "#ef4444";
@@ -485,11 +497,64 @@
       }
 
       setTimeout(() => {
-        btn.textContent = "Run Briefing Now";
+        btn.textContent = "Send briefing now";
         btn.disabled = false;
         btn.style.opacity = "1";
         btn.style.background = "linear-gradient(135deg,#667eea,#764ba2)";
       }, 3000);
+    }
+
+    async function previewBriefing() {
+      const btn = document.getElementById("previewBtn");
+      const out = document.getElementById("previewOutput");
+      btn.textContent = "Generating...";
+      btn.disabled = true;
+      out.innerHTML = "";
+
+      try {
+        const resp = await fetch(`/api/briefing/${clientId}/preview`, { method: "POST" });
+        const data = await resp.json();
+        if (resp.ok && data.briefing) {
+          out.innerHTML = renderBriefingPreview(data.briefing);
+        } else {
+          out.innerHTML = `<div class="table-card" style="padding:16px;margin-bottom:12px;color:#ef4444">Preview failed: ${esc(data.error || "unknown error")}</div>`;
+        }
+      } catch {
+        out.innerHTML = `<div class="table-card" style="padding:16px;margin-bottom:12px;color:#ef4444">Connection error</div>`;
+      }
+
+      btn.textContent = "Preview briefing";
+      btn.disabled = false;
+    }
+
+    function renderBriefingPreview(b) {
+      const urgent = (b.urgent_items || []).map((u) => `<li style="color:#c0392b">${esc(u)}</li>`).join("");
+      const convs = (b.conversations || []).map((c) => {
+        const actions = (c.action_items || []).map((a) => `<li>${esc(a)}</li>`).join("");
+        const reply = c.needs_reply
+          ? `<div style="background:#f0f7ff;padding:10px;border-radius:8px;margin-top:8px;font-size:13px">
+               <strong>Reply A (casual):</strong><br>${esc(c.draft_reply_a || "")}
+               <br><br><strong>Reply B (professional):</strong><br>${esc(c.draft_reply_b || "")}
+             </div>` : "";
+        return `
+          <div style="border:1px solid #eee;border-radius:8px;padding:14px;margin-bottom:10px">
+            <h4 style="margin:0 0 6px 0;font-size:14px">${esc(c.contact_name || "Unknown")}</h4>
+            <p style="margin:0;color:#444;font-size:13px">${esc(c.summary || "")}</p>
+            ${actions ? `<ul style="margin:6px 0 0 0;font-size:13px">${actions}</ul>` : ""}
+            ${reply}
+          </div>`;
+      }).join("");
+
+      return `
+        <div class="table-card" style="padding:20px;margin-bottom:16px;border-left:3px solid #667eea">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <h3 style="font-size:15px;margin:0">Briefing preview</h3>
+            <span style="font-size:12px;color:#999">Not emailed</span>
+          </div>
+          <p style="color:#444;font-size:14px;margin-bottom:12px">${esc(b.overview || "")}</p>
+          ${urgent ? `<div style="background:#fff5f5;padding:12px;border-radius:8px;margin-bottom:12px"><strong style="color:#c0392b">Urgent</strong><ul style="margin-top:6px">${urgent}</ul></div>` : ""}
+          ${convs || '<p style="color:#999;font-size:13px">No conversations to summarise.</p>'}
+        </div>`;
     }
 
     function renderFollowups(main) {
@@ -536,11 +601,35 @@
       const coldPct = total ? ((stats.cold || 0) / total * 100) : 0;
       const clientPct = total ? ((stats.client || 0) / total * 100) : 0;
 
+      const onboarding = crmData?.onboarding || {};
+      const allDone = onboarding.whatsapp && onboarding.contacts && onboarding.email && onboarding.tested;
+      const item = (done, label, action) => {
+        const icon = done
+          ? '<span style="color:#22c55e;font-size:18px;margin-right:10px">&#10003;</span>'
+          : '<span style="display:inline-block;width:14px;height:14px;border:2px solid #ccc;border-radius:50%;margin-right:12px;vertical-align:middle"></span>';
+        const textStyle = done ? "color:#999;text-decoration:line-through" : "color:#1a1a2e";
+        return `
+          <div style="display:flex;align-items:center;padding:10px 0;border-bottom:1px solid #f0f0f0">
+            ${icon}
+            <span style="flex:1;font-size:14px;${textStyle}">${label}</span>
+            ${done ? "" : `<a href="${action.href}" ${action.onclick ? `onclick="${action.onclick}"` : ""} style="font-size:12px;color:#667eea;font-weight:600;text-decoration:none">${action.label} &rarr;</a>`}
+          </div>`;
+      };
+      const checklistHtml = allDone ? "" : `
+        <div class="table-card" style="padding:20px;margin-bottom:20px;border-left:3px solid #667eea">
+          <h3 style="font-size:15px;margin-bottom:10px">Getting started</h3>
+          ${item(onboarding.whatsapp, "Connect WhatsApp", { href: `/connect/${clientId}`, label: "Connect" })}
+          ${item(onboarding.contacts, "Add your first contacts", { href: "#", onclick: "event.preventDefault();showView('contacts')", label: "Add" })}
+          ${item(onboarding.email, "Connect your email inbox", { href: "#", onclick: "event.preventDefault();showView('settings')", label: "Connect" })}
+          ${item(onboarding.tested, "Send a test briefing", { href: "#", onclick: "event.preventDefault();showView('messages')", label: "Try it" })}
+        </div>`;
+
       main.innerHTML = `
         <div class="page-header">
           <h2>Dashboard</h2>
           <span class="last-updated">Updated: ${formatDate(crmData?.updated_at)}</span>
         </div>
+        ${checklistHtml}
         <div class="stats">
           <div class="stat-card">
             <div class="label">Total Contacts</div>
@@ -751,12 +840,32 @@
     }
 
     async function renderSettings(main) {
-      // Load current email settings
+      // Load current email settings + schedule preferences
       let emailSettings = { configured: false };
+      let prefs = { briefingTime: "07:30", timezone: "UTC" };
       try {
         const resp = await fetch(`/api/email-settings/${clientId}`);
         if (resp.ok) emailSettings = await resp.json();
       } catch {}
+      try {
+        const resp = await fetch(`/api/preferences/${clientId}`);
+        if (resp.ok) prefs = await resp.json();
+      } catch {}
+
+      const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+      const tzOptions = [
+        browserTz, "UTC",
+        "America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles",
+        "Europe/London", "Europe/Paris", "Europe/Berlin", "Europe/Madrid", "Europe/Istanbul",
+        "Asia/Dubai", "Asia/Kolkata", "Asia/Bangkok", "Asia/Singapore", "Asia/Hong_Kong",
+        "Asia/Shanghai", "Asia/Tokyo", "Asia/Seoul",
+        "Australia/Sydney", "Pacific/Auckland",
+      ];
+      const uniqTz = [...new Set(tzOptions)];
+      const tzSelected = prefs.timezone || browserTz;
+      const tzOptionsHtml = uniqTz
+        .map((z) => `<option value="${esc(z)}" ${z === tzSelected ? "selected" : ""}>${esc(z)}</option>`)
+        .join("");
 
       const statusBadge = emailSettings.configured
         ? '<span style="color:#22c55e;font-weight:600">Connected</span>'
@@ -765,6 +874,32 @@
       main.innerHTML = `
         <div class="page-header">
           <h2>Settings</h2>
+        </div>
+
+        <div class="table-card" style="padding:24px;max-width:560px;margin-bottom:16px">
+          <h3 style="font-size:16px;margin-bottom:4px">Briefing Schedule</h3>
+          <p style="font-size:13px;color:#666;margin-bottom:16px">
+            Choose when your daily briefing arrives, in your local time.
+          </p>
+
+          <div style="display:flex;gap:12px;margin-bottom:12px">
+            <div style="flex:1">
+              <label style="display:block;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#555;margin-bottom:4px">Time</label>
+              <input id="briefingTime" type="time" value="${esc(prefs.briefingTime || "07:30")}"
+                style="width:100%;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px;font-family:inherit">
+            </div>
+            <div style="flex:2">
+              <label style="display:block;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#555;margin-bottom:4px">Timezone</label>
+              <select id="briefingTz" style="width:100%;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px;font-family:inherit">
+                ${tzOptionsHtml}
+              </select>
+            </div>
+          </div>
+
+          <button onclick="saveSchedule()" style="padding:12px 24px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">
+            Save schedule
+          </button>
+          <span id="scheduleStatus" style="margin-left:12px;font-size:13px"></span>
         </div>
 
         <div class="table-card" style="padding:24px;max-width:560px">
@@ -879,6 +1014,33 @@
           statusEl.style.color = "#ef4444";
         }
       } catch (err) {
+        statusEl.textContent = "Connection error";
+        statusEl.style.color = "#ef4444";
+      }
+    }
+
+    async function saveSchedule() {
+      const briefingTime = document.getElementById("briefingTime").value;
+      const timezone = document.getElementById("briefingTz").value;
+      const statusEl = document.getElementById("scheduleStatus");
+      statusEl.textContent = "Saving...";
+      statusEl.style.color = "#666";
+
+      try {
+        const resp = await fetch(`/api/preferences/${clientId}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ briefingTime, timezone }),
+        });
+        const data = await resp.json();
+        if (resp.ok) {
+          statusEl.textContent = `Saved. Next briefing at ${briefingTime} ${timezone}.`;
+          statusEl.style.color = "#22c55e";
+        } else {
+          statusEl.textContent = data.error || "Save failed";
+          statusEl.style.color = "#ef4444";
+        }
+      } catch {
         statusEl.textContent = "Connection error";
         statusEl.style.color = "#ef4444";
       }
