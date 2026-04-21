@@ -18,6 +18,7 @@ const {
   getClientStatus,
   getAllClientIds,
   getClientDataPath,
+  getClientError,
   getRecentMessages,
   onQR,
   removeQRListener,
@@ -305,8 +306,30 @@ app.get("/connect/:clientId", (req, res) => {
           document.getElementById("qrState").style.display = "none";
           document.getElementById("successState").style.display = "block";
         }
+
+        if (data.status === "failed") {
+          clearInterval(interval);
+          document.getElementById("qrBox").innerHTML = \`
+            <div style="text-align:center;padding:20px">
+              <p style="color:#ef4444;font-weight:600;margin-bottom:8px">WhatsApp failed to start</p>
+              <p style="color:#666;font-size:13px;line-height:1.6">\${data.error || "Chromium could not be launched on this server."}</p>
+              <p style="color:#666;font-size:13px;margin-top:12px">Please contact support or try again later.</p>
+            </div>\`;
+        }
+
+        // Show timeout message after 60 seconds of no QR
+        if (!data.qr && data.status !== "connected" && Date.now() - startTime > 60000) {
+          clearInterval(interval);
+          document.getElementById("qrBox").innerHTML = \`
+            <div style="text-align:center;padding:20px">
+              <p style="color:#f59e0b;font-weight:600;margin-bottom:8px">Taking longer than expected</p>
+              <p style="color:#666;font-size:13px;line-height:1.6">The server is having trouble launching WhatsApp. Please refresh the page to try again.</p>
+              <button onclick="location.reload()" style="margin-top:12px;padding:10px 20px;background:#667eea;color:white;border:none;border-radius:8px;cursor:pointer;font-size:13px">Refresh</button>
+            </div>\`;
+        }
       } catch {}
     }, 2000);
+    const startTime = Date.now();
   </script>
 </body>
 </html>`);
@@ -328,6 +351,7 @@ app.get("/api/status/:clientId", (req, res) => {
 
   res.json({
     status,
+    error: getClientError(clientId),
     qr: latestQR[clientId] || null,
   });
 });

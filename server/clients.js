@@ -77,8 +77,14 @@ function getAllClientIds() {
 function getClientStatus(clientId) {
   const client = clients.get(clientId);
   if (!client) return "disconnected";
+  if (client._failed) return "failed";
   if (client._ready) return "connected";
   return "connecting";
+}
+
+function getClientError(clientId) {
+  const client = clients.get(clientId);
+  return client?._error || null;
 }
 
 /**
@@ -206,8 +212,8 @@ function startClient(clientId) {
   clients.set(clientId, waClient);
   waClient.initialize().catch((err) => {
     console.error(`[${clientId}] WhatsApp failed to start:`, err.message);
-    console.error(`[${clientId}] Server will continue without WhatsApp. Install Chromium to enable it.`);
-    clients.delete(clientId);
+    waClient._failed = true;
+    waClient._error = err.message;
   });
 }
 
@@ -239,6 +245,7 @@ module.exports = {
   getClientConfig,
   saveClientConfig,
   getClientStatus,
+  getClientError,
   getRecentMessages,
   getAllClientIds,
   getMessages,
