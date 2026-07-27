@@ -15,13 +15,19 @@ echo ""
 # ── 1. System packages ────────────────────────────────────────
 echo "[1/6] Installing system packages..."
 apt-get update -qq
-apt-get install -y -qq \
-  curl git nginx certbot python3-certbot-nginx \
-  chromium-browser \
+
+# Install chromium (name differs between Ubuntu versions)
+apt-get install -y -qq curl git nginx certbot python3-certbot-nginx \
   libgbm-dev libxkbcommon-dev libglib2.0-0 libnss3 \
   libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
   libxcomposite1 libxdamage1 libxrandr2 libxss1 \
-  libpango-1.0-0 libcairo2 libasound2
+  libpango-1.0-0 libcairo2
+
+# libasound2 was renamed in Ubuntu 24.04
+apt-get install -y -qq libasound2t64 2>/dev/null || apt-get install -y -qq libasound2 2>/dev/null || true
+
+# Chromium package name also differs
+apt-get install -y -qq chromium 2>/dev/null || apt-get install -y -qq chromium-browser 2>/dev/null || true
 
 # ── 2. Node.js 20 ─────────────────────────────────────────────
 echo "[2/6] Installing Node.js 20..."
@@ -71,8 +77,8 @@ ANTHROPIC_API_KEY=$ANTHROPIC_KEY
 EMAIL_FROM=$EMAIL_FROM
 EMAIL_APP_PASSWORD=$EMAIL_PASS
 OPENAI_API_KEY=$OPENAI_KEY
-CHROME_BIN=$(which chromium-browser || which chromium)
-PUPPETEER_EXECUTABLE_PATH=$(which chromium-browser || which chromium)
+CHROME_BIN=$(which chromium 2>/dev/null || which chromium-browser 2>/dev/null)
+PUPPETEER_EXECUTABLE_PATH=$(which chromium 2>/dev/null || which chromium-browser 2>/dev/null)
 PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 EOF
   echo ""
