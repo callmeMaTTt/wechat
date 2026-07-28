@@ -8,7 +8,6 @@
 
 const fs = require("fs");
 const path = require("path");
-const { getClientDataPath } = require("./clients");
 
 /**
  * Transcribe a WhatsApp voice message.
@@ -19,6 +18,11 @@ async function transcribeVoiceMessage(msg, clientId) {
   if (!apiKey) {
     return "[Voice message — transcription unavailable]";
   }
+
+  // Lazy require: clients.js requires this module, so a top-level require
+  // back at clients.js would create a circular dependency and leave
+  // getClientDataPath undefined.
+  const { getClientDataPath } = require("./clients");
 
   try {
     // Download media from WhatsApp

@@ -202,6 +202,6 @@ console.log("");
 console.log("  8 contacts (2 hot, 3 warm, 2 cold, 1 client)");
 console.log("  9 messages from today");
 console.log("");
-console.log("  Start the server: bash server-start.sh");
+console.log("  Start the server: npm start");
 console.log("  Then open the dashboard URL above.");
 console.log("");

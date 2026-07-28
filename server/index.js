@@ -12,6 +12,7 @@ const crypto = require("crypto");
 const cron = require("node-cron");
 const {
   startClient,
+  restartClient,
   startAllClients,
   getClientConfig,
   saveClientConfig,
@@ -175,6 +176,15 @@ app.post("/signup", (req, res) => {
     return res.status(400).json({ error: "Name and email required" });
   }
 
+  // If this email already has an account, resume it instead of creating a duplicate
+  for (const id of getAllClientIds()) {
+    const existing = getClientConfig(id);
+    if (existing?.email?.toLowerCase() === email.toLowerCase()) {
+      startClient(id);
+      return res.redirect(`/connect/${id}`);
+    }
+  }
+
   // Generate a client ID
   const hash = crypto.createHash("md5").update(`${email}-${Date.now()}`).digest("hex").substring(0, 8);
   const clientId = `${name.toLowerCase().replace(/[^a-z0-9]/g, "-")}-${hash}`;
@@ -202,6 +212,16 @@ app.get("/connect/:clientId", (req, res) => {
 
   if (!config) {
     return res.status(404).send("Client not found");
+  }
+
+  // Make "refresh to try again" work: restart a failed session, or start
+  // one that isn't running at all (e.g. after a server reboot).
+  const status = getClientStatus(clientId);
+  if (status === "failed") {
+    delete latestQR[clientId];
+    restartClient(clientId);
+  } else if (status === "disconnected") {
+    startClient(clientId);
   }
 
   res.send(`<!DOCTYPE html>
@@ -349,11 +369,29 @@ app.get("/api/status/:clientId", (req, res) => {
     latestQR[clientId] = qrDataUrl;
   });
 
+  // A consumed QR is useless once connected — drop it so a future
+  // reconnect can't show a stale code.
+  if (status === "connected") delete latestQR[clientId];
+
   res.json({
     status,
     error: getClientError(clientId),
-    qr: latestQR[clientId] || null,
+    qr: status === "connected" ? null : latestQR[clientId] || null,
   });
+});
+
+// Force-restart a WhatsApp session (recovers a stuck "connecting" state)
+app.post("/api/reconnect/:clientId", async (req, res) => {
+  const { clientId } = req.params;
+  if (!getClientConfig(clientId)) return res.status(404).json({ error: "Client not found" });
+
+  delete latestQR[clientId];
+  try {
+    await restartClient(clientId);
+    res.json({ success: true, status: getClientStatus(clientId) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ─── Dashboard ──────────────────────────────────────────────

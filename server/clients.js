@@ -207,6 +207,15 @@ function startClient(clientId) {
     console.log(`[${clientId}] Disconnected: ${reason}`);
     waClient._ready = false;
     clients.delete(clientId);
+    waClient.destroy().catch(() => {});
+    // Auto-reconnect after a short delay — the saved session is reused,
+    // so this recovers from transient drops without a new QR scan.
+    setTimeout(() => {
+      if (!clients.has(clientId)) {
+        console.log(`[${clientId}] Attempting reconnect...`);
+        startClient(clientId);
+      }
+    }, 10000);
   });
 
   clients.set(clientId, waClient);
@@ -215,6 +224,24 @@ function startClient(clientId) {
     waClient._failed = true;
     waClient._error = err.message;
   });
+}
+
+/**
+ * Force-restart a client: tear down any existing (possibly hung or failed)
+ * WhatsApp session and start fresh. The saved auth is reused, so this does
+ * not require a new QR scan unless the session was invalidated.
+ */
+async function restartClient(clientId) {
+  const existing = clients.get(clientId);
+  if (existing) {
+    clients.delete(clientId);
+    try {
+      await existing.destroy();
+    } catch (err) {
+      console.log(`[${clientId}] Destroy during restart: ${err.message}`);
+    }
+  }
+  startClient(clientId);
 }
 
 /**
@@ -241,6 +268,7 @@ function removeQRListener(clientId) {
 
 module.exports = {
   startClient,
+  restartClient,
   startAllClients,
   getClientConfig,
   saveClientConfig,

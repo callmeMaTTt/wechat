@@ -400,8 +400,8 @@
                   <td>${formatSource(c.source)}</td>
                   <td><span class="badge ${(c.lead_status || 'cold').toLowerCase()}">${esc(c.lead_status || "cold")}</span></td>
                   <td>${esc(c.property_type || "—")}</td>
-                  <td>${formatBudget(c.budget_min, c.budget_max)}</td>
-                  <td>${esc(c.preferred_locations || "—")}</td>
+                  <td>${c.budget_min || c.budget_max ? formatBudget(c.budget_min, c.budget_max) : esc(c.budget || "—")}</td>
+                  <td>${esc(c.preferred_locations || c.location || "—")}</td>
                   <td>${esc(c.last_contact || "—")}</td>
                 </tr>
               `).join("")}
@@ -726,7 +726,7 @@
             <div style="flex:1">${field('Budget Min', inp('budget_min', c.budget_min, '500000', 'number'))}</div>
             <div style="flex:1">${field('Budget Max', inp('budget_max', c.budget_max, '1000000', 'number'))}</div>
           </div>
-          ${field('Preferred Locations', inp('preferred_locations', c.preferred_locations, 'e.g. North Shore, Mosman'))}
+          ${field('Preferred Locations', inp('preferred_locations', c.preferred_locations || c.location, 'e.g. North Shore, Mosman'))}
           ${field('Timeline', inp('timeline', c.timeline, 'e.g. Next 3 months'))}
         </div>
 
@@ -844,6 +844,11 @@
       let emailSettings = { configured: false };
       let prefs = { briefingTime: "07:30", timezone: "UTC" };
       try {
+        // Refresh so the WhatsApp status shown below is current
+        const resp = await fetch(`/api/dashboard/${clientId}`);
+        if (resp.ok) crmData = await resp.json();
+      } catch {}
+      try {
         const resp = await fetch(`/api/email-settings/${clientId}`);
         if (resp.ok) emailSettings = await resp.json();
       } catch {}
@@ -947,11 +952,15 @@
             Status: <span id="waStatus" style="color:${crmData?.status === 'connected' ? '#22c55e' : '#ef4444'};font-weight:600">${esc(crmData?.status || 'unknown')}</span>
           </p>
           ${crmData?.status !== 'connected' ? `
-            <p style="font-size:13px;color:#666;margin-bottom:12px">Connect your WhatsApp to start capturing messages.</p>
+            <p style="font-size:13px;color:#666;margin-bottom:12px">Connect your WhatsApp to start capturing messages. If it's stuck on "connecting", try restarting the connection.</p>
             <a href="/connect/${clientId}"
               style="display:inline-block;padding:10px 20px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-decoration:none">
               Connect WhatsApp
             </a>
+            <button onclick="reconnectWhatsApp()" id="reconnectBtn"
+              style="margin-left:8px;padding:10px 20px;background:white;color:#667eea;border:1.5px solid #667eea;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">
+              Restart connection
+            </button>
           ` : `
             <p style="font-size:13px;color:#22c55e">WhatsApp is connected and capturing messages.</p>
           `}
@@ -1016,6 +1025,22 @@
       } catch (err) {
         statusEl.textContent = "Connection error";
         statusEl.style.color = "#ef4444";
+      }
+    }
+
+    async function reconnectWhatsApp() {
+      const btn = document.getElementById("reconnectBtn");
+      btn.textContent = "Restarting...";
+      btn.disabled = true;
+
+      try {
+        await fetch(`/api/reconnect/${clientId}`, { method: "POST" });
+        // Give the session a few seconds to come up, then re-render with fresh status
+        setTimeout(() => showView("settings"), 5000);
+        btn.textContent = "Restarted — checking status...";
+      } catch {
+        btn.textContent = "Restart connection";
+        btn.disabled = false;
       }
     }
 

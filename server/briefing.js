@@ -42,14 +42,18 @@ Respond in JSON with this structure:
       "phone": "if mentioned",
       "source": "whatsapp/email",
       "property_type": "house/apartment/etc",
-      "budget": "if mentioned",
-      "location": "preferred area",
+      "budget_min": 500000,
+      "budget_max": 750000,
+      "preferred_locations": "preferred areas, comma-separated",
+      "timeline": "e.g. next 3 months",
       "lead_status": "cold/warm/hot/client",
       "notes": "key info",
       "suggested_followup": "what to do next"
     }
   ]
-}`;
+}
+
+budget_min and budget_max must be plain numbers (no currency symbols or commas); omit them if no budget was mentioned. Omit any field that wasn't mentioned rather than guessing.`;
 
 async function generateBriefing(clientId) {
   const config = getClientConfig(clientId);
@@ -124,24 +128,17 @@ async function generateBriefing(clientId) {
 async function runBriefing(clientId, options = {}) {
   const { preview = false } = options;
   const config = getClientConfig(clientId);
-  if (!config) return null;
+  if (!config) throw new Error(`No config for client ${clientId}`);
 
-  try {
-    const briefing = await generateBriefing(clientId);
-    if (!briefing) return null;
+  const briefing = await generateBriefing(clientId);
 
-    if (!preview) {
-      saveCRMData(clientId, briefing.contacts || []);
-      await sendEmail(config, briefing);
-      console.log(`[Briefing] ${clientId}: Briefing sent to ${config.email}`);
-    }
-
-    return briefing;
-  } catch (err) {
-    console.error(`[Briefing] ${clientId}: Error:`, err.message);
-    if (preview) throw err;
-    return null;
+  if (!preview) {
+    saveCRMData(clientId, briefing.contacts || []);
+    await sendEmail(config, briefing);
+    console.log(`[Briefing] ${clientId}: Briefing sent to ${config.email}`);
   }
+
+  return briefing;
 }
 
 function saveCRMData(clientId, contacts) {
